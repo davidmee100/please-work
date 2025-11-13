@@ -1116,6 +1116,58 @@
           // ignore
         }
       }
+      // Clone the current document into a detached DOM, refresh the site-defaults
+      // payload, and return a serialised HTML string. This shared helper prevents
+      // the export routines from performing fragile string replacements on the
+      // live page markup.
+      function buildExportHtmlWithDefaults(allB64) {
+        const clonedDoc = document.cloneNode(true);
+        if (!clonedDoc || !clonedDoc.documentElement) {
+          throw new Error('Failed to clone document for export');
+        }
+        const defaultsNodes = clonedDoc.querySelectorAll('#site-defaults');
+        let insertParent = clonedDoc.head || clonedDoc.body || clonedDoc.documentElement;
+        let insertBefore = null;
+        if (defaultsNodes.length > 0) {
+          const firstNode = defaultsNodes[0];
+          insertParent = firstNode.parentNode || clonedDoc.head || clonedDoc.body || clonedDoc.documentElement;
+          insertBefore = firstNode.nextSibling;
+          Array.from(defaultsNodes).forEach(node => {
+            if (node.parentNode) {
+              node.parentNode.removeChild(node);
+            }
+          });
+        } else {
+          insertBefore = insertParent ? insertParent.firstChild : null;
+        }
+        if (!insertParent) {
+          throw new Error('Failed to prepare export document');
+        }
+        const defaultsScript = clonedDoc.createElement('script');
+        defaultsScript.id = 'site-defaults';
+        defaultsScript.type = 'application/json';
+        defaultsScript.textContent = allB64;
+        if (insertBefore) {
+          insertParent.insertBefore(defaultsScript, insertBefore);
+        } else {
+          insertParent.appendChild(defaultsScript);
+        }
+        const serializer = new XMLSerializer();
+        const docTypeNode = document.doctype;
+        let docType = '<!DOCTYPE html>\n';
+        if (docTypeNode) {
+          docType = `<!DOCTYPE ${docTypeNode.name}`;
+          if (docTypeNode.publicId) {
+            docType += ` PUBLIC "${docTypeNode.publicId}"`;
+          }
+          if (docTypeNode.systemId) {
+            docType += docTypeNode.publicId ? ` "${docTypeNode.systemId}"` : ` SYSTEM "${docTypeNode.systemId}"`;
+          }
+          docType += '>\n';
+        }
+        return docType + serializer.serializeToString(clonedDoc);
+      }
+
       function saveStructureVersion() {
         if (!currentSite || !rows || rows.length === 0) {
           alert('Start an assessment and create at least one role before exporting a structure.');
@@ -1155,34 +1207,8 @@
           exportObj.definitions = roleDefinitions;
           const jsonStr = JSON.stringify(exportObj);
           const allB64 = btoa(unescape(encodeURIComponent(jsonStr)));
-          // Remove any existing site-defaults element from the live DOM before exporting.  This ensures
-          // we do not serialize stale defaults or nested tags from previous saves.  Using the DOM to
-          // remove the element is more reliable than string manipulation because it correctly targets
-          // the real <script id="site-defaults"> in the document rather than a similar string inside
-          // this script's own source code.
-          const currentDefaultsEl = document.getElementById('site-defaults');
-          if (currentDefaultsEl) {
-            currentDefaultsEl.parentNode.removeChild(currentDefaultsEl);
-          }
-          let html = document.documentElement.outerHTML;
-          // Remove any lingering <script id="site-defaults"> blocks that might still be present in the
-          // serialized HTML.  The global flag (g) ensures all occurrences are removed, not just the first.
-          html = html.replace(/<script[^>]+id="site-defaults"[^>]*>[\s\S]*?<\/script>/ig, '');
-          // Insert the freshly generated defaults immediately before the final </body> tag.  We use
-          // lastIndexOf to locate the actual closing </body> in the document rather than the first
-          // occurrence (which can appear in this script).  The injected string does not contain
-          // </body> or </html> to avoid truncating the file.
-          const idxBody = html.lastIndexOf('</body>');
-          if (idxBody !== -1) {
-            // Build the injection string without including a literal closing script tag
-            // in this script source. Splitting the tag prevents the HTML parser from prematurely
-            // ending the surrounding script when this code is loaded. At runtime this
-            // concatenation produces a normal closing script tag in the final HTML.
-            const injOpen = '<script id="site-defaults" type="application/json">\n';
-            const injClose = '<' + '/script>\n';
-            const injection = injOpen + allB64 + '\n' + injClose;
-            html = html.slice(0, idxBody) + injection + html.slice(idxBody);
-          }
+          // Serialise the cloned DOM with a refreshed site-defaults payload.
+          let html = buildExportHtmlWithDefaults(allB64);
           const now = new Date();
           const timestamp = now.toISOString().replace(/[:T.-]/g, '').slice(0, 14);
           const storagePrefix = 'pulp_skills_data_20250825201950_20250910150825_' + timestamp + '_';
@@ -3055,17 +3081,8 @@
           exportObj.definitions = roleDefinitions;
           const jsonStr = JSON.stringify(exportObj);
           const allB64 = btoa(unescape(encodeURIComponent(jsonStr)));
-          // Capture the current HTML
-          let html = document.documentElement.outerHTML;
-          // Inject or replace a <script id="site-defaults"> block with the base64 payload.
-          if (/<script[^>]+id="site-defaults"[^>]*>/.test(html)) {
-            html = html.replace(/(<script[^>]+id="site-defaults"[^>]*>)([\s\S]*?)(<\/script>)/,
-                                `$1\n  ${allB64}\n$3`);
-          } else {
-            // If no site-defaults script exists, insert one just before </body>
-            html = html.replace(/<\/body>/,
-              `<script id="site-defaults" type="application/json">\n  ${allB64}\n<\/script>\n</body>`);
-          }
+          // Serialise the cloned DOM with the in-memory defaults embedded.
+          let html = buildExportHtmlWithDefaults(allB64);
           // Generate a unique timestamp and update storage key prefixes
           const now = new Date();
           const timestamp = now.toISOString().replace(/[:T.-]/g, '').slice(0, 14);
