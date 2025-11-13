@@ -1,0 +1,4023 @@
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<title>Plant Skills</title>
+<style>
+    /* Reset and base styles */
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f8f8f8;
+      color: #333;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin: 0;
+      padding: 0;
+    }
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 16px;
+      /* A bold blue background for the header */
+      background-color: #1a73e8;
+      color: #ffffff;
+      border-bottom: 1px solid #005bb5;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .toolbar .inputs label {
+      margin-right: 12px;
+      font-size: 0.85rem;
+    }
+    .toolbar input {
+      padding: 4px;
+      font-size: 0.85rem;
+    }
+    .toolbar .actions button {
+      margin-left: 8px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border: 1px solid #888;
+      border-radius: 4px;
+      /* Use a white background and blue text for header buttons so
+         they stand out on the blue toolbar */
+      background-color: #ffffff;
+      color: #1a73e8;
+    }
+    .toolbar .actions button:hover {
+      background-color: #f0f0f0;
+    }
+
+    /* Countdown notice styling.  The yellow text signals the data expiry time */
+    .expiry-notice {
+      margin-left: 16px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: #ffeb3b;
+    }
+
+    /* Modal overlay and content styling for the instructions/FAQ window */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 6px;
+      max-width: 800px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      color: #333;
+    }
+    #legend {
+      padding: 8px 16px;
+      font-size: 0.8rem;
+      background-color: #fff;
+      border-bottom: 1px solid #ddd;
+    }
+
+    /* Site navigation styles */
+    .site-nav {
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      background-color: #fff;
+      border-bottom: 1px solid #ddd;
+      /* Make the navigation bar sticky so it remains visible when scrolling. */
+      position: sticky;
+      /* Position below the top toolbar. Adjust this value if the toolbar height changes. */
+      top: 40px;
+      z-index: 90;
+    }
+    .site-nav button {
+      margin-right: 8px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border: 1px solid #888;
+      border-radius: 4px;
+      background-color: #fafafa;
+    }
+    .site-nav button:hover {
+      background-color: #f0f0f0;
+    }
+    /* Table styles */
+    .view {
+      /* Let the view height be determined by its content.  Removing the fixed
+         or max height ensures that short tables do not leave a large blank
+         area at the bottom of the page.  For longer tables the page scrolls
+         normally. */
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 0.8rem;
+    }
+    thead th {
+      position: sticky;
+      top: 0;
+      background-color: #f0f0f0;
+      padding: 6px 4px;
+      border-bottom: 1px solid #ccc;
+      z-index: 50;
+    }
+    tbody td {
+      padding: 4px;
+      border-bottom: 1px solid #eee;
+      vertical-align: top;
+      word-wrap: break-word;
+    }
+    tbody tr:nth-child(even) td {
+      background-color: #fafafa;
+    }
+    /* Column widths to avoid horizontal scroll */
+    /* Column widths sum to 100% to avoid horizontal scroll */
+    .col-dept { width: 9%; }
+    /* Removed the separate Cluster column. The cluster name will be displayed within the role cell instead. */
+    /* .col-cluster { ... } is no longer used */
+    /* Updated column widths for the new layout: the removed cluster column width is merged into the role column. */
+    /* The role column is reduced to about 20% of the table width on the
+       main worksheet. The freed‑up space is allocated to the comment
+       columns (comments and mitigation details) to improve readability. */
+    .col-role { width: 20%; }
+    .col-crit { width: 7%; text-align: center; }
+    .col-cap { width: 7%; text-align: center; }
+    .col-ret { width: 7%; text-align: center; }
+    .col-overall { width: 7%; text-align: center; }
+    /* Comments column width is increased and font slightly reduced for readability */
+    /* Increase the comments column width to 29% and reduce the role column
+       accordingly. This provides more space for long capability and
+       retention notes. */
+    /* Allocate column widths such that the Comments and Mitigation Details
+       columns have the same width.  By setting both to 22% and keeping
+       the other columns unchanged, the total width remains 100%: 20% (Role)
+       + 7% (Criticality) + 7% (Capability) + 7% (Retention Risk) + 7%
+       (Overall Risk) + 22% (Comments) + 8% (Preferred Method) + 22%
+       (Mitigation Details) = 100%.  The reduced comments width still
+       provides ample room for notes while matching the mitigation details
+       column for a balanced look. */
+    .col-comments { width: 22%; font-size: 0.75rem; line-height: 1.3; }
+    .col-pref { width: 8%; text-align: center; }
+    .col-gap { width: 22%; }
+    /* RAG colours */
+    /* Row separator line for better readability */
+    tbody tr:not(.dept-section) td {
+      border-bottom: 1px solid #eee;
+    }
+    /* RAG colour classes with !important to override row striping */
+    .crit-1 { background-color: #d7e7d3 !important; color: #004400 !important; }
+    .crit-2 { background-color: #fff5d6 !important; color: #8a6d00 !important; }
+    .crit-3 { background-color: #f8d7da !important; color: #842029 !important; }
+
+    /* Summary card tables styling */
+    .summary-card table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    .summary-card th,
+    .summary-card td {
+      padding: 4px 6px;
+      border-right: 1px solid #cccccc;
+      border-bottom: 1px solid #cccccc;
+    }
+    .summary-card th:last-child,
+    .summary-card td:last-child {
+      border-right: none;
+    }
+    /* Equal widths for risk columns in the As‑Is summary. The first column is
+       slightly reduced (24%) to free up space for the other risk columns.
+       The remaining four columns each take up an equal share of the rest of
+       the table width. */
+    /* Adjust the As‑Is summary table so the role column is about 20% of the
+       total width, freeing up space for the four risk columns. Each of
+       the risk columns now shares the remaining 80% evenly (20% each).
+       This change gives more room to the capability and comments in the
+       summary view. */
+    .summary-card.as-is table th:nth-child(1),
+    .summary-card.as-is table td:nth-child(1) {
+      width: 20%;
+    }
+    .summary-card.as-is table th:nth-child(2),
+    .summary-card.as-is table td:nth-child(2),
+    .summary-card.as-is table th:nth-child(3),
+    .summary-card.as-is table td:nth-child(3),
+    .summary-card.as-is table th:nth-child(4),
+    .summary-card.as-is table td:nth-child(4),
+    .summary-card.as-is table th:nth-child(5),
+    .summary-card.as-is table td:nth-child(5) {
+      width: 20%;
+    }
+
+    /* Styling for the capability heatmap table */
+    .cap-heatmap table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 0.75rem;
+    }
+    .cap-heatmap th,
+    .cap-heatmap td {
+      padding: 4px 6px;
+      border-right: 1px solid #cccccc;
+      border-bottom: 1px solid #cccccc;
+      vertical-align: top;
+    }
+    .cap-heatmap th:last-child,
+    .cap-heatmap td:last-child {
+      border-right: none;
+    }
+    .cap-heatmap tr:nth-child(even) td {
+      background-color: #f9f9f9;
+    }
+
+    /* Apply light alternating row shading to summary tables as well. This
+       uses the same colour as the heatmap so that any grey backgrounds
+       scroll naturally with the content rather than appearing fixed. */
+    .summary-card table tr:nth-child(even) td {
+      background-color: #f9f9f9;
+    }
+    .cap-1 { background-color: #f8d7da !important; color: #842029 !important; }
+    /* Medium capability (amber) uses the same yellow as other RAG buckets to ensure
+       consistency across all tables. */
+    .cap-2 { background-color: #fff5d6 !important; color: #8a6d00 !important; }
+    .cap-3 { background-color: #d7e7d3 !important; color: #004400 !important; }
+    .ret-L { background-color: #d7e7d3 !important; color: #004400 !important; }
+    .ret-M { background-color: #fff5d6 !important; color: #8a6d00 !important; }
+    .ret-H { background-color: #f8d7da !important; color: #842029 !important; }
+    .ret-null { background-color: #e7e7e7 !important; color: #666 !important; }
+    .overall-Low { background-color: #d7e7d3 !important; color: #004400 !important; }
+    .overall-Medium { background-color: #fff5d6 !important; color: #8a6d00 !important; }
+    .overall-High { background-color: #f8d7da !important; color: #842029 !important; }
+    .overall-Critical { background-color: #e5b7b9 !important; color: #660000 !important; animation: pulse 2s infinite !important; }
+    @media (prefers-reduced-motion: reduce) {
+      .overall-Critical { animation: none; }
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(132,32,41, 0.4); }
+      70% { box-shadow: 0 0 0 6px rgba(132,32,41, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(132,32,41, 0); }
+    }
+
+    /* Department section rows span all columns. Use a light background and bold text for section headers */
+    tr.dept-section td {
+      background-color: #eef2f7;
+      font-weight: bold;
+      padding: 6px;
+    }
+    /* Hide department section header rows entirely since this version of the tool
+       no longer distinguishes pulp-specific vs shared departments. This prevents
+       the grey lines (pulp-specific departments, shared with paper mill) from
+       being displayed. */
+    tr.dept-section {
+      display: none !important;
+    }
+    /* Popover */
+    .popover {
+      position: absolute;
+      background-color: #ffffff;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 8px;
+      z-index: 200;
+      font-size: 0.8rem;
+    }
+    .popover label {
+      display: block;
+      margin-bottom: 4px;
+    }
+    .popover select {
+      width: 100%;
+      margin-bottom: 6px;
+    }
+    .popover button {
+      margin-right: 4px;
+      padding: 4px 8px;
+      font-size: 0.8rem;
+    }
+    /* Summary view */
+    #summaryView {
+      padding: 8px;
+    }
+    .summary-card {
+      background-color: #fff;
+      border: 1px solid #ddd;
+      margin-bottom: 12px;
+      padding: 8px;
+    }
+    .summary-card h2 {
+      margin: 0 0 6px 0;
+      font-size: 1rem;
+    }
+    .summary-card table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 6px;
+      font-size: 0.75rem;
+      table-layout: fixed;
+    }
+    .summary-card th, .summary-card td {
+      /* Use a consistent grey border on all sides to create clear vertical and
+         horizontal separators. This slightly darker shade ensures column
+         dividers remain visible without being too heavy. */
+      border: 1px solid #cccccc;
+      padding: 4px;
+      text-align: left;
+      word-wrap: break-word;
+      white-space: normal;
+    }
+    .hidden { display: none; }
+
+    /* Neutral style for missing criticality values */
+    .crit-null { background-color: #e7e7e7; color: #666; }
+
+    /* Preserve newlines in comment and gap cells */
+    .col-comments {
+      white-space: pre-wrap;
+    }
+    .col-gap {
+      white-space: pre-wrap;
+    }
+    /* Print styles */
+    @media print {
+      body { font-size: 10pt; }
+      .toolbar, #legend, .popover { display: none !important; }
+      #summaryView, #dataView { overflow: visible; height: auto; }
+      thead th { background-color: #f0f0f0 !important; -webkit-print-color-adjust: exact; }
+      .crit-1, .crit-2, .crit-3,
+      .cap-1, .cap-2, .cap-3,
+      .ret-L, .ret-M, .ret-H, .ret-null,
+      .overall-Low, .overall-Medium, .overall-High, .overall-Critical {
+        -webkit-print-color-adjust: exact;
+      }
+    }
+
+    /* Start view styling */
+    #startView {
+      padding: 0;
+    }
+    .start-container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 0 16px;
+    }
+    .start-intro, .start-guidance {
+      background: #fff;
+      padding: 16px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 24px;
+    }
+    .start-intro p {
+      margin: 0 0 1em 0;
+    }
+    .start-guidance h3 {
+      margin-top: 0;
+    }
+    .start-guidance ul {
+      list-style-type: disc;
+      padding-left: 20px;
+    }
+    .start-buttons {
+      /* Display the mill buttons in a responsive grid.  We use flexbox with
+         wrapping so the nine mills wrap onto two rows when the container
+         width allows.  Each button takes up roughly 20% of the available
+         width minus the gap, yielding five buttons on the first row and
+         four on the second. */
+      margin: 24px 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+    }
+    .start-buttons button {
+      flex: 1 0 calc(20% - 16px);
+      padding: 12px;
+      font-size: 1rem;
+      cursor: pointer;
+      border: 1px solid #888;
+      border-radius: 4px;
+      background-color: #fafafa;
+      text-align: center;
+    }
+    .start-buttons button:hover {
+      background-color: #f0f0f0;
+    }
+
+    /* Provide extra space below the reset button to separate it from the
+       guidance box. */
+    .start-reset {
+      margin-bottom: 24px;
+    }
+
+    /* Highlight the active site in the navigation bar.  The active-site
+       button uses the same blue as the header with white text for
+       contrast. */
+    .site-nav button.active-site {
+      background-color: #1a73e8;
+      color: #fff;
+    }
+    .site-nav button.active-site:hover {
+      background-color: #1a5bc2;
+    }
+
+    /* Hide any grey section rows that were specific to the old pulp mill layout. */
+    .dept-section {
+      display: none;
+    }
+    /* Modal styles for Manage Roles */
+    #manageRolesModal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #fff;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      padding: 16px;
+      z-index: 1000;
+      max-height: 80vh;
+      max-width: 90vw;
+      overflow-y: auto;
+    }
+    #manageRolesModal table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    #manageRolesModal th,
+    #manageRolesModal td {
+      border: 1px solid #ddd;
+      padding: 4px 6px;
+    }
+    #manageRolesModal th {
+      background-color: #f7f7f7;
+      font-weight: 700;
+    }
+    #manageRolesModal td input {
+      width: 90%;
+      padding: 2px;
+      font-size: 0.85rem;
+    }
+    #manageRolesModal button {
+      margin-top: 8px;
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+<!-- Start view shown when no site selected -->
+<div id="startView" style="display: none;">
+  <!-- Top header for the welcome page.  We split the toolbar into a title and
+       actions section similar to the assessment view.  The actions
+       include buttons to download the CSV, save an HTML template with
+       updated roles, open the instructions/FAQ modal, and display the
+       local data expiry countdown.  These controls are only visible on
+       the welcome page. -->
+  <div class="toolbar">
+    <div class="title">
+      <h1><span aria-label="factory" role="img" style="margin-right:6px;">🏭</span>Welcome</h1>
+    </div>
+    <div class="actions">
+      <button id="downloadCsvStart">Download CSV</button>
+      <button id="saveStructureStart">Save HTML with updated roles</button>
+      <button id="instructionsBtn">Instructions & FAQ</button>
+      <!-- Countdown for local data expiry displayed on the welcome page -->
+      <span id="dataExpiryNoticeStart" class="expiry-notice"></span>
+    </div>
+  </div>
+<div class="start-container">
+<div class="start-intro">
+        <!-- Introduction for the welcome page.  This section sits above the name and plant
+             inputs.  It briefly explains what the tool is and links to the support
+             agent. -->
+        <h2>Welcome to the Strategic HR Capability Assessment Tool</h2>
+        <p>This HTML tool is the core platform we use to run the Strategic HR Capability Assessment. It is browser‑based, secure, and easy to use.</p>
+        <h3>Interactive Support (AI Agent)</h3>
+        <p>If you need help at any stage—understanding ratings, using the tool, preparing for the workshop, or troubleshooting—you can use the HRM Support Agent, which guides you step‑by‑step and answers questions:</p>
+        <p><a href="https://m365.cloud.microsoft:443/chat/?titleId=T_8d461c3e-50a2-4888-5502-6e13fdadda8d&amp;source=embedded-builder" target="_blank">HRM Support Agent</a></p>
+</div>
+<!-- Added a simple name input so users can enter their name before starting.
+     The name is collected for courtesy but not displayed on subsequent pages. -->
+<div class="start-input-wrapper" style="text-align:center; margin-top:12px; margin-bottom:12px; display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:8px;">
+  <label for="startUserName" style="margin-right:4px; font-weight:bold;">Name:</label>
+  <input id="startUserName" type="text" placeholder="Enter your name" style="padding:4px; border:1px solid #ccc; border-radius:4px; width:200px;">
+  <label for="startPlantName" style="margin-left:12px; margin-right:4px; font-weight:bold;">Plant Name:</label>
+  <input id="startPlantName" type="text" placeholder="Enter plant name" style="padding:4px; border:1px solid #ccc; border-radius:4px; width:200px;">
+</div>
+<!-- Only three options are available on the combined tool.  Each button calls loadSite() with the exact site name. -->
+<div class="start-buttons">
+  <!-- Single start button launches the assessment for the unified plant. -->
+  <button onclick="startAssessment()">Start</button>
+  <!-- Upload button opens the consolidation view where multiple CSV responses can be uploaded. -->
+  <button onclick="showConsolidation()">Upload responses</button>
+</div>
+<!-- Reset button to restore the default starting data. Only shown on the welcome page. -->
+<div class="start-reset" style="text-align:center; margin-top:12px;">
+<button onclick="resetData()" style="background-color:#d9534f; color:#fff; padding:6px 12px; border:none; border-radius:4px; cursor:pointer;">Reset Data</button>
+</div>
+<!-- Lock role structure toggle -->
+<div class="start-lock" style="text-align:center; margin-top:12px;">
+  <label style="font-weight:bold;"><input id="lockStructureToggle" type="checkbox"> Lock role structure</label>
+</div>
+<!-- Explanation of what the tool enables; appears after the Start and Upload buttons and before the workshop guidance -->
+<div class="start-what" style="background:#fff; padding:16px; border:1px solid #ddd; border-radius:4px; margin-top:24px; margin-bottom:24px;">
+  <h3>What the Tool Enables</h3>
+  <h4>1. Expert Assessments</h4>
+  <p>Each expert receives their own copy of the tool to independently assess roles. They enter:</p>
+  <ul>
+    <li>ratings</li>
+    <li>comments</li>
+    <li>recommended mitigation strategies (Build, Buy, Borrow, Bot, Retain)</li>
+  </ul>
+  <p>After completing their review, they export a CSV file and return it.</p>
+  <h4>2. Data Consolidation</h4>
+  <p>All expert CSVs can be uploaded into the tool. The tool automatically:</p>
+  <ul>
+    <li>averages capability and risk scores</li>
+    <li>merges comments</li>
+    <li>calculates overall role risk</li>
+    <li>produces a clean consolidated dataset for the workshop</li>
+  </ul>
+  <h4>3. Workshop Facilitation</h4>
+  <p>In the workshop, the consolidated tool is projected so the team can:</p>
+  <ul>
+    <li>review each role together</li>
+    <li>validate ratings</li>
+    <li>agree on mitigation actions</li>
+    <li>update the data live</li>
+  </ul>
+  <p>You can export the final agreed version at the end of the session.</p>
+  <h4>4. Follow‑Up Tracking</h4>
+  <p>After the workshop, the same tool is used to monitor progress. You can:</p>
+  <ul>
+    <li>update scores</li>
+    <li>adjust retention risks</li>
+    <li>refine or close mitigation actions</li>
+    <li>export updated data for follow‑up reviews (1 week, 1 month, 3 months)</li>
+  </ul>
+</div>
+<div class="start-guidance">
+<h3>Good Practice for Workshops</h3>
+<p>As we work through the data, please keep these points in mind:</p>
+<ul>
+<li>Challenge each other. Ask questions, test assumptions, and make sure ratings are accurate.</li>
+<li>Step 1: Review whether criticality, capabilities, and retention risk have been rated effectively.</li>
+<li>Step 2: Discuss our current methods for addressing any gaps identified.</li>
+<li>Stay open and constructive. The more we challenge, the stronger and more reliable our data will be.</li>
+<li>Focus on improvement. Our goal is to ensure we have the right approach for addressing gaps and building capability.</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- Site content container; hidden until a site is selected -->
+<!-- Consolidation view is defined outside of startView so it can be shown independently of the welcome page -->
+<div id="consolidationView" style="display:none;">
+  <div class="toolbar">
+    <h1><span aria-label="factory" role="img" style="margin-right:6px;">📄</span>Consolidate Responses</h1>
+  </div>
+  <div class="site-nav">
+    <strong>Navigation:</strong>
+    <button onclick="showStart()">Back to Start</button>
+  </div>
+  <div class="consolidate-container" style="padding:16px;">
+    <!-- Hidden file input for selecting multiple CSVs -->
+    <input id="uploadInput" type="file" accept=".csv" multiple style="display:none;">
+    <div style="margin-bottom:12px; display:flex; flex-wrap:wrap; gap:8px;">
+      <button id="uploadBtn">Upload responses</button>
+      <button id="processBtn">Process</button>
+      <button id="downloadConsolidatedBtn">Download consolidated CSV</button>
+      <button id="updateToolBtn">Update tool with consolidated data</button>
+      <button id="clearConsolidatedBtn">Clear Data</button>
+    </div>
+    <!-- Area where the consolidated table will be rendered -->
+    <div id="consolidatedOutput"></div>
+  </div>
+</div>
+<div id="siteContent" style="">
+<div class="toolbar">
+  <div class="title">
+    <h1><span aria-label="factory" role="img" style="margin-right:6px;">🏭</span>Plant Skills Assessment</h1>
+  </div>
+  <div class="inputs">
+    <!-- User Name input removed -->
+    <label>Mill: <input id="inputMill" placeholder="Enter mill" type="text"/></label>
+  </div>
+  <div class="actions">
+    <button id="toggleSummary">Show Summary</button>
+    <button id="printBtn">Print</button>
+    <button id="manageRolesBtn">Manage Roles</button>
+    <!-- Back to start button now lives in the header rather than a separate nav bar -->
+    <button id="backToStartBtn" onclick="showStart()">Back to Start</button>
+    <!-- Countdown notice for data expiry displayed on assessment view -->
+    <span id="dataExpiryNotice" class="expiry-notice"></span>
+  </div>
+</div>
+<!-- The separate navigation bar is removed; the Back to Start button is now in the header. -->
+<div class="view" id="dataView">
+<table id="dataTable">
+<thead>
+<tr>
+<!-- Removed Department and Cluster columns. Role column now contains cluster on top and role name below -->
+<th class="col-role" title="Role">Role</th>
+<!-- Removed the separate Cluster column; cluster name will be shown above the role name -->
+<th class="col-crit" title="1 – Essential, but short-term gaps can be managed. Impact is felt over months or years if not addressed.&#10;&#10;&#10;2 – Important and increasingly disruptive if missing for weeks or months. Sustained absence reduces effectiveness and performance.&#10;&#10;&#10;3 – Vital for ongoing operations or delivery. Any short-term lapse (days or weeks) causes immediate and significant disruption.">Criticality</th>
+<th class="col-cap" title="1 – Significant Gap: Current capability is well below what the role requires. Consistent support or development needed to perform effectively.&#10;&#10;&#10;2 – Adequate / Developing: Meets most role requirements but with room for improvement. Performs competently in familiar situations; some growth still needed for full mastery.&#10;&#10;&#10;3 – Strong Performance: Fully meets or exceeds expectations for the role. Demonstrates consistent, high-quality performance and applies the capability effectively in complex or changing contexts.">Capability</th>
+<th class="col-ret" title="Retention Risk (H–M–L scale):&#10;&#10;&#10;High: Likely to leave within 12 months. Clear indicators such as approaching retirement, active job search, dissatisfaction with role, leadership, or culture, or pay notably below market. Requires immediate action.&#10;&#10;&#10;Medium: Possible departure within 1–2 years. Some signs of disengagement, partial dissatisfaction, or moderate pay gap. Retention depends on improved development, recognition, or future opportunities.&#10;&#10;&#10;Low: Unlikely to leave in the foreseeable future. Individual is satisfied, well-compensated, and engaged with their work and environment. Risk limited to unexpected external offers or life events.">Retention Risk</th>
+<th class="col-overall" title="Overall Risk">Overall Risk</th>
+<th class="col-comments" title="Comments">Comments</th>
+<th class="col-pref" title="Mitigation">Mitigation</th>
+<th class="col-gap" title="Mitigation Details">Mitigation Details</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+</div> <!-- end of siteContent -->
+
+<!-- Manage Roles Modal -->
+<div id="manageRolesModal" style="display:none;">
+  <h3>Manage Roles</h3>
+  <div id="rolesList"></div>
+  <div style="margin-top:12px;">
+    <button id="addRoleBtnModal">Add Role</button>
+    <button id="closeRolesModalBtn">Close</button>
+  </div>
+</div>
+
+<!-- Instructions & FAQ Modal -->
+<div id="instructionsModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <h3>Instructions &amp; FAQ</h3>
+    <p>
+      <strong>Starting an Assessment:</strong><br>
+      Use the <em>Start</em> button on the welcome page to launch the assessment for your plant.  You will be presented with a table of roles.  For each role, rate the <em>Criticality</em>, <em>Capability</em>, and <em>Retention Risk</em>.  You can add comments and mitigation notes directly in the table.
+    </p>
+    <p>
+      <strong>Managing Roles:</strong><br>
+      Click <em>Manage Roles</em> to add or remove roles from the assessment.  Changes take effect immediately and will be included in your CSV exports and summaries.
+    </p>
+    <p>
+      <strong>Viewing the Summary:</strong><br>
+      Use the <em>Show Summary</em> button (or <em>Show Full Data</em> when the summary is visible) to toggle between the full assessment table and an aggregated summary view.  The summary view highlights overall risk and capability gaps across all roles.
+    </p>
+    <p>
+      <strong>Saving and Exporting:</strong><br>
+      Use <em>Download CSV</em> on the welcome page to save your current assessment, including all ratings and comments.  Because this file may contain personal or HR‑related information, always treat it as confidential: open it only in a trusted spreadsheet program, set a password on the file, and store it in a secure or encrypted location.  You should delete or move the unprotected CSV as soon as you have finished using it.<br><br>
+      Use <em>Save HTML with updated roles</em> to export a version of the tool that keeps your current role structure but resets all ratings, capability scores, retention risks, comments and mitigation notes to their default values.  Your full assessment remains in local storage on your computer; the exported file contains only the empty role framework so you can safely share it with colleagues for their input without revealing your confidential data.
+    </p>
+    <p>
+      <strong>Data retention:</strong><br>
+      Your assessment data is stored locally in your browser and is automatically deleted after three days of inactivity.  The countdown in the header shows how long until the data expires.  Each time you make a change, the timer resets.  When the timer reaches zero, all assessment data will be cleared for security.  Make sure to download a CSV file before the time expires if you wish to keep your inputs.
+    </p>
+    <p>
+      <strong>Security &amp; Privacy:</strong><br>
+      Security and privacy are critical when handling assessment data.  Treat any exported CSV as strictly confidential because it may include personally identifiable or HR‑sensitive information.  Protect the file with a password, store it in a secure or encrypted location, and remove the unencrypted copy once you no longer need it.  When you export the structure‑only HTML version, remember that it does not include your ratings or comments – these remain safely in your browser.  The tool operates entirely on your device and does not transmit data anywhere, but the way you store and share exported files determines how secure they remain.
+    </p>
+    <button id="closeInstructionsBtn" style="margin-top:12px;" onclick="document.getElementById('instructionsModal').style.display='none'">Close</button>
+  </div>
+</div>
+
+<!-- Placeholder summary view.  When the user toggles the summary on, the script
+     will populate this container with dynamic content.  Leaving it empty
+     here avoids displaying any legacy summary data from prior assessments. -->
+<div id="summaryView" class="view hidden"></div>
+
+<!-- Seed data embedded from Excel (JSON format).  We provide an empty
+     rows array here because this combined Plant tool does not use any
+     pre-filled site-specific default rows. -->
+<script id="seed-data" type="application/json">{"rows": []}</script>
+
+<script>
+    (function() {
+      // Utility functions for calculations
+      function computeCapabilityAvg(row) {
+        // Coerce numeric values to numbers before averaging. If any cell is
+        // provided as a string (e.g. "3"), addition on strings can lead to
+        // concatenation which breaks averaging. Cast to floats here.
+        const rawVals = [row.capTech, row.capExperience, row.capCrisis, row.capLeadComm, row.capSafety];
+        const vals = rawVals.filter(v => v !== null && v !== undefined).map(v => {
+          // parseInt may return NaN for empty strings; fallback to null
+          const num = typeof v === 'string' ? parseFloat(v) : v;
+          return isNaN(num) ? null : num;
+        }).filter(v => v !== null);
+        if (!vals.length) return null;
+        const sum = vals.reduce((a, b) => a + b, 0);
+        return sum / vals.length;
+      }
+      function bucketCapability(avg) {
+        if (avg === null) return null;
+        if (avg >= 2.5) return 3;
+        if (avg >= 1.5) return 2;
+        return 1;
+      }
+
+      /**
+       * Round down values that end in .5 to the next lower integer.  For example,
+       * 0.5 becomes 0, 1.5 becomes 1, and 2.5 becomes 2.  Values that do
+       * not have a fractional part of 0.5 are returned unchanged.  A small
+       * tolerance is used to account for floating‑point imprecision.
+       *
+       * @param {number|null} val The numeric value to adjust.
+       * @returns {number|null} The adjusted value or the original if no change is needed.
+       */
+      function roundDownHalf(val) {
+        if (val == null) return val;
+        const frac = val - Math.floor(val);
+        // Use a tolerance to handle floating point rounding errors, e.g. 0.49999999
+        if (Math.abs(frac - 0.5) < 1e-6) {
+          return Math.floor(val);
+        }
+        return val;
+      }
+
+      /**
+       * Round a numeric value to the nearest whole number while always rounding
+       * .5 values down (toward zero). This helper is used when computing
+       * aggregated capability dimensions that must map onto discrete rating
+       * options (0–3) in the main assessment.  For example, 1.2 → 1,
+       * 1.5 → 1, 1.8 → 2. Negative numbers are returned unchanged.
+       *
+       * @param {number|null} val The numeric value to round.
+       * @returns {number|null} The rounded integer or the original value if null.
+       */
+      function roundNearestWholeHalfDown(val) {
+        if (val == null) return val;
+        // Only operate on non-negative numbers. If the value is negative,
+        // simply return it unchanged.
+        if (val < 0) return val;
+        const floor = Math.floor(val);
+        const frac = val - floor;
+        // Treat .5 specially: always round down
+        if (Math.abs(frac - 0.5) < 1e-6) {
+          return floor;
+        }
+        // Otherwise, round to nearest whole: frac < 0.5 → floor, frac > 0.5 → floor+1
+        let result = (frac < 0.5 ? floor : floor + 1);
+        // Enforce a minimum value of 1 because the rating scale in the
+        // assessment does not support zero.  Without this adjustment,
+        // averages below 0.5 would produce 0, which cannot be represented
+        // in the drop‑down and would render as a dash.
+        if (result < 1) result = 1;
+        return result;
+      }
+      function mapRetentionNum(val) {
+        if (!val || val === '-') return null;
+        if (val === 'L') return 1;
+        if (val === 'M') return 2;
+        if (val === 'H') return 3;
+        return null;
+      }
+      function computeOverallRisk(row) {
+        /*
+         * Overall risk mapping derived from the criticality map document. The
+         * overall risk is determined by combining the role's criticality (1 =
+         * Low, 2 = Medium, 3 = High) with its capability bucket (1 = Low,
+         * 2 = Medium, 3 = High) and retention risk (L/M/H mapped to 1/2/3).
+         * Missing capability values default to High (3) and missing
+         * retention risk defaults to Low (1) to avoid penalising unknowns.
+         *
+         * The mapping for each criticality level is:
+         *
+         * Criticality = High (3):
+         *   cap\ret  1    2        3
+         *    3      Low  Medium   High
+         *    2     Medium High    Critical
+         *    1     High  Critical Critical
+         *
+         * Criticality = Medium (2):
+         *   cap\ret  1    2        3
+         *    3      Low  Medium   Medium
+         *    2     Medium Medium   High
+         *    1     Medium High    High
+         *
+         * Criticality = Low (1):
+         *   cap\ret  1    2        3
+         *    3      Low  Low      Low
+         *    2      Low  Low     Medium
+         *    1      Low  Medium  Medium
+         */
+        const criticality = row.criticality != null ? Math.round(row.criticality) : null;
+        // Default missing capability to high capability
+        const capBucket = row.capabilityBucket != null ? row.capabilityBucket : 1;
+        // Default missing retention risk to low
+        const retNumRaw = mapRetentionNum(row.retentionRisk);
+        const ret = retNumRaw != null ? retNumRaw : 1;
+        if (!criticality) return null;
+        // High criticality
+        if (criticality === 3) {
+          if (capBucket === 3 && ret === 1) return 'Low';
+          if (capBucket === 3 && ret === 2) return 'Medium';
+          if (capBucket === 3 && ret === 3) return 'High';
+          if (capBucket === 2 && ret === 1) return 'Medium';
+          if (capBucket === 2 && ret === 2) return 'High';
+          if (capBucket === 2 && ret === 3) return 'Critical';
+          if (capBucket === 1 && ret === 1) return 'High';
+          if (capBucket === 1 && ret === 2) return 'Critical';
+          if (capBucket === 1 && ret === 3) return 'Critical';
+        }
+        // Medium criticality
+        if (criticality === 2) {
+          if (capBucket === 3 && ret === 1) return 'Low';
+          if (capBucket === 3 && ret === 2) return 'Medium';
+          if (capBucket === 3 && ret === 3) return 'Medium';
+          if (capBucket === 2 && ret === 1) return 'Medium';
+          if (capBucket === 2 && ret === 2) return 'Medium';
+          if (capBucket === 2 && ret === 3) return 'High';
+          if (capBucket === 1 && ret === 1) return 'Medium';
+          if (capBucket === 1 && ret === 2) return 'High';
+          if (capBucket === 1 && ret === 3) return 'High';
+        }
+        // Low criticality
+        if (criticality === 1) {
+          if (capBucket === 3 && ret === 1) return 'Low';
+          if (capBucket === 3 && ret === 2) return 'Low';
+          if (capBucket === 3 && ret === 3) return 'Low';
+          if (capBucket === 2 && ret === 1) return 'Low';
+          if (capBucket === 2 && ret === 2) return 'Low';
+          if (capBucket === 2 && ret === 3) return 'Medium';
+          if (capBucket === 1 && ret === 1) return 'Low';
+          if (capBucket === 1 && ret === 2) return 'Medium';
+          if (capBucket === 1 && ret === 3) return 'Medium';
+        }
+        return null;
+      }
+      /**
+       * Determine which capability dimensions are low (value === 1).
+       * Returns an array of strings like "Technical knowledge".
+       */
+      function getLowDimensions(row) {
+        const dims = [];
+        if (row.capTech === 1) dims.push('Technical knowledge');
+        if (row.capExperience === 1) dims.push('Experience');
+        if (row.capCrisis === 1) dims.push('Crisis management');
+        if (row.capLeadComm === 1) dims.push('Leadership & Communication');
+        if (row.capSafety === 1) dims.push('Safety mindset');
+        return dims;
+      }
+      /**
+       * Build a multiline comments string for display in the table.
+       * It separates capability and retention comments into their own sections
+       * with bullet points. Automatic notes about low capability dimensions are
+       * appended to the capability section.
+       */
+      function displayComments(row) {
+        const lines = [];
+        // Capability section
+        const capLines = [];
+        // manual capability comments
+        if (row.capabilityComment) {
+          row.capabilityComment.split(/\n/).forEach(l => {
+            const trimmed = l.trim();
+            if (trimmed) {
+              // Append capability comments without a leading dash.  Dashes can
+              // interfere with consolidation and are unnecessary for simple
+              // listing.
+              capLines.push(trimmed);
+            }
+          });
+        }
+        // Removed auto generated low dimension notes to avoid duplicate comments during merging.
+        // Always include a Capability section.  Only add bullet lines if
+        // capability comments exist; otherwise leave the section empty.  This
+        // avoids inserting placeholder dashes that would pollute consolidated
+        // comments.
+        lines.push('Capability:');
+        if (capLines.length) {
+          lines.push(...capLines);
+        }
+        // Retention section
+        const retLines = [];
+        if (row.retentionComment) {
+          row.retentionComment.split(/\n/).forEach(l => {
+            const trimmed = l.trim();
+            if (trimmed) {
+              // Append retention comments without a leading dash
+              retLines.push(trimmed);
+            }
+          });
+        }
+        // Insert an extra blank line between capability and retention only if
+        // there are capability lines.  This keeps the two sections separate
+        // without introducing empty bullets when there are no notes.
+        if (capLines.length) {
+          lines.push('');
+          lines.push('');
+        }
+        lines.push('Retention:');
+        if (retLines.length) {
+          lines.push(...retLines);
+        }
+        // Additional general comments (from original comments field) if provided
+        const addLines = [];
+        if (row.comments) {
+          row.comments.split(/\n/).forEach(l => {
+            const trimmed = l.trim();
+            if (trimmed) {
+                  // Append additional comments without a leading dash
+                  addLines.push(trimmed);
+            }
+          });
+        }
+        if (addLines.length) {
+          // Add a single blank line before Additional section for separation
+          lines.push('');
+          lines.push('Additional:');
+          lines.push(...addLines);
+        }
+        if (lines.length === 0) return '';
+        return lines.join('\n');
+      }
+      // Parse seed data
+      const seedEl = document.getElementById('seed-data');
+      const seedJson = JSON.parse(seedEl.textContent);
+      // Override the seed data rows to reflect paper mill roles instead of pulp mill roles
+      /* Override of seedJson.rows for paper roles is no longer used in this combined tool.
+      seedJson.rows = [
+        {department: null, cluster: null, roleArea: 'Operations Manager (Paper)', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Supervisor (Shift/Area)', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Production / Area Manager – Paper Machine, Finishing & Converting', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Maintenance & Reliability Manager', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Process Engineer', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Project Engineer', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'HSE Manager', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Quality Manager', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'R&D / Technical Services Manager', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Supply Chain Manager', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Logistics & Warehouse Manager', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Continuous Improvement / Lean Manager', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Finance / Plant Controller', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''}
+      ];
+      */
+
+      // Define the list of mills (sites) for the paper mill assessment.
+      // Each site will maintain its own independent data set.
+      // Define the list of mills (sites) for the combined pulp and paper assessment.
+      // Only three options are available: a pulp-only view, a paper & shared view, and Jönköping.
+      const siteNames = [
+        'Plant'
+      ];
+
+      // ---------------------------------------------------------------------------
+      // Local data expiry handling
+      //
+      // The tool stores all assessment data in the browser's localStorage.
+      // For privacy, this data is automatically deleted after three days
+      // of inactivity.  Each time the user changes a value, the expiry is
+      // reset to three days from that change.  Two keys are used:
+      //   plant_skills_last_modified – timestamp of last change
+      //   plant_skills_expires_at   – timestamp when data expires
+      // A global interval updates the countdown in the header every second.
+      const LAST_MOD_KEY = 'plant_skills_last_modified';
+      const EXPIRY_KEY = 'plant_skills_expires_at';
+      let expiryInterval = null;
+
+      // Definitions for each role.  When hovering over a role name in the
+      // table, the corresponding definition will appear as a tooltip.  These
+      // descriptions describe the core responsibilities of each role in
+      // the paper mill.  If a role is not listed here, no tooltip is
+      // displayed.
+      const roleDefinitions = {
+        'Operations Manager (Paper)': 'Production planning and coordination; grade changeovers; stabilising run conditions; KPI control (speed, waste, quality, uptime); cross-shift alignment; clear escalation.',
+        'Supervisor (Shift/Area)': 'Front-line leadership; control-room/line operation; safe start-up/shutdown; standard work enforcement; quick escalation; training and performance feedback.',
+        'Production / Area Manager – Paper Machine, Finishing & Converting': 'High-speed run stability across areas; crew leadership and training; standard work discipline; fast troubleshooting of breaks/defects; safe operations; clean handovers.',
+        'Maintenance & Reliability Manager': 'Preventive/predictive programs; rapid breakdown response; root-cause fixes; shutdown/turnaround planning; spares control; reliability and uptime improvement.',
+        'Process Engineer': 'Optimising wet end, pressing, drying, calendering; data analysis/SPC; fibre/chemistry tuning; run trials; energy/water reduction; solving chronic losses.',
+        'Project Engineer': 'Capex scoping and business cases; equipment spec/selection; installation and commissioning; contractor/vendor control; schedule/cost/risk management; change control.',
+        'HSE Manager': 'Compliance and permits; risk assessments and safe systems of work; training and audits; incident investigation and learning; effluent/air/noise monitoring; regulator reporting.',
+        'Quality Manager': 'QMS ownership; lab methods and release testing; SPC basics; traceability and certificates; customer complaints/CAPA; supplier quality checks.',
+        'R&D / Technical Services Manager': 'New grade development; fibre blends and sizing/coating optimisation; pilot/plant trials and scale-up; customer line support; specs and datasheets.',
+        'Supply Chain Manager': 'Pulp/chemical/packaging procurement; inventory and warehouse control; production & delivery planning; logistics coordination; cost-to-serve optimisation.',
+        'Logistics & Warehouse Manager': 'Dock/yard operations; carrier management; export docs; roll/pack integrity and damage prevention; layout, picking, cycle counts; on-time dispatch.',
+        'Continuous Improvement / Lean Manager': 'Structured problem-solving (A3, 5-Why); process mapping; standard work/visual controls; kaizen facilitation; benefits tracking and verification.',
+        'Finance / Plant Controller': 'Costing/variance analysis; budgets/forecasts; inventory valuation/controls; capex cases; compliance; decision support to operations.'
+      };
+
+      // Persist role definitions so that edited descriptions are saved across sessions.
+      // Definitions are stored under a dedicated key in localStorage.  When editing or
+      // adding roles in the Manage Roles modal, changes to descriptions are saved via
+      // saveDefinitions().  Upon load, loadDefinitions() will override the default
+      // descriptions with any saved values.
+      const DEFINITIONS_KEY = 'plant_skills_roleDefinitions';
+      function loadDefinitions() {
+        try {
+          const saved = localStorage.getItem(DEFINITIONS_KEY);
+          if (saved) {
+            const obj = JSON.parse(saved);
+            if (obj && typeof obj === 'object') {
+              Object.keys(obj).forEach(k => {
+                roleDefinitions[k] = obj[k];
+              });
+            }
+          }
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+      function saveDefinitions() {
+        try {
+          localStorage.setItem(DEFINITIONS_KEY, JSON.stringify(roleDefinitions));
+        } catch (e) {
+          // Ignore storage errors
+        }
+      } // close saveDefinitions
+
+      // -----------------------------------------------------------------------
+      // Local data expiry utilities and structure export
+      //
+      // The following helper functions manage the inactivity timeout, update
+      // countdown displays on both the welcome and assessment pages, clear data
+      // when it expires, and export a structure-only HTML template.
+      function updateLastModified() {
+        try {
+          const now = new Date();
+          localStorage.setItem(LAST_MOD_KEY, now.toISOString());
+          const expires = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+          localStorage.setItem(EXPIRY_KEY, expires.toISOString());
+        } catch (e) {
+          // ignore storage errors
+        }
+      }
+      function startExpiryCountdown() {
+        if (expiryInterval) {
+          clearInterval(expiryInterval);
+          expiryInterval = null;
+        }
+        function updateCountdown() {
+          try {
+            const expireStr = localStorage.getItem(EXPIRY_KEY);
+            const notice = document.getElementById('dataExpiryNotice');
+            const noticeStart = document.getElementById('dataExpiryNoticeStart');
+            if (!expireStr) {
+              if (notice) notice.textContent = '';
+              if (noticeStart) noticeStart.textContent = '';
+              return;
+            }
+            const now = new Date();
+            const expireAt = new Date(expireStr);
+            const diff = expireAt - now;
+            if (diff <= 0) {
+              autoClearLocalData();
+              if (notice) notice.textContent = 'Local data expired and was cleared.';
+              if (noticeStart) noticeStart.textContent = 'Local data expired and was cleared.';
+              clearInterval(expiryInterval);
+              expiryInterval = null;
+              return;
+            }
+            const totalSeconds = Math.floor(diff / 1000);
+            const days = Math.floor(totalSeconds / 86400);
+            const hours = Math.floor((totalSeconds % 86400) / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            const parts = [];
+            if (days > 0) parts.push(days + 'd');
+            parts.push(hours.toString().padStart(2,'0') + 'h');
+            parts.push(minutes.toString().padStart(2,'0') + 'm');
+            parts.push(seconds.toString().padStart(2,'0') + 's');
+            const msg = 'Local data auto‑delete in ' + parts.join(' ');
+            if (notice) notice.textContent = msg;
+            if (noticeStart) noticeStart.textContent = msg;
+          } catch (err) {
+            // ignore
+          }
+        }
+        updateCountdown();
+        expiryInterval = setInterval(updateCountdown, 1000);
+      }
+      function autoClearLocalData() {
+        try {
+          Object.keys(localStorage).forEach(function(k) {
+            if (k.indexOf('plant_skills') !== -1 || k.indexOf('pulp_skills_data') !== -1) {
+              localStorage.removeItem(k);
+            }
+          });
+          localStorage.removeItem(LAST_MOD_KEY);
+          localStorage.removeItem(EXPIRY_KEY);
+          // Reset rows and lock state
+          rows = [];
+          structureLocked = false;
+          // Return to start page
+          showStart();
+        } catch (e) {
+          // ignore
+        }
+      }
+      function saveStructureVersion() {
+        if (!currentSite || !rows || rows.length === 0) {
+          alert('Start an assessment and create at least one role before exporting a structure.');
+          return;
+        }
+        const proceed = confirm(
+          'This will create a new HTML file that keeps your current role structure but resets all ratings, capability scores, retention risks, comments and mitigation notes to their default values.\n\n' +
+          'Your existing assessment data will remain saved in your browser (local memory) for your own use. The exported file contains only the empty role framework so it can be safely shared with others for their input without exposing your confidential data.\n\nDo you want to continue?'
+        );
+        if (!proceed) return;
+        try {
+          const allDefaults = {};
+          siteNames.forEach(name => {
+            allDefaults[name] = defaultData[name].map(r => ({...r}));
+          });
+          const cleanRows = rows.map(r => {
+            const obj = Object.assign({}, r);
+            obj.criticality = 1;
+            obj.capTech = 1;
+            obj.capExperience = 1;
+            obj.capCrisis = 1;
+            obj.capLeadComm = 1;
+            obj.capSafety = 1;
+            obj.capabilityAvg = null;
+            obj.retentionRisk = 'L';
+            obj.overallRisk = null;
+            obj.capabilityComment = '';
+            obj.retentionComment = '';
+            obj.comments = '';
+            obj.preferredMethod = '-';
+            obj.gapMethodComment = '';
+            return obj;
+          });
+          allDefaults[currentSite] = cleanRows;
+          const exportObj = Object.assign({}, allDefaults);
+          exportObj.lock = { structureLocked: structureLocked };
+          exportObj.definitions = roleDefinitions;
+          const jsonStr = JSON.stringify(exportObj);
+          const allB64 = btoa(unescape(encodeURIComponent(jsonStr)));
+          // Remove any existing site-defaults element from the live DOM before exporting.  This ensures
+          // we do not serialize stale defaults or nested tags from previous saves.  Using the DOM to
+          // remove the element is more reliable than string manipulation because it correctly targets
+          // the real <script id="site-defaults"> in the document rather than a similar string inside
+          // this script's own source code.
+          const currentDefaultsEl = document.getElementById('site-defaults');
+          if (currentDefaultsEl) {
+            currentDefaultsEl.parentNode.removeChild(currentDefaultsEl);
+          }
+          let html = document.documentElement.outerHTML;
+          // Remove any lingering <script id="site-defaults"> blocks that might still be present in the
+          // serialized HTML.  The global flag (g) ensures all occurrences are removed, not just the first.
+          html = html.replace(/<script[^>]+id="site-defaults"[^>]*>[\s\S]*?<\/script>/ig, '');
+          // Insert the freshly generated defaults immediately before the final </body> tag.  We use
+          // lastIndexOf to locate the actual closing </body> in the document rather than the first
+          // occurrence (which can appear in this script).  The injected string does not contain
+          // </body> or </html> to avoid truncating the file.
+          const idxBody = html.lastIndexOf('</body>');
+          if (idxBody !== -1) {
+            // Build the injection string without including a literal closing script tag
+            // in this script source. Splitting the tag prevents the HTML parser from prematurely
+            // ending the surrounding script when this code is loaded. At runtime this
+            // concatenation produces a normal closing script tag in the final HTML.
+            const injOpen = '<script id="site-defaults" type="application/json">\n';
+            const injClose = '<' + '/script>\n';
+            const injection = injOpen + allB64 + '\n' + injClose;
+            html = html.slice(0, idxBody) + injection + html.slice(idxBody);
+          }
+          const now = new Date();
+          const timestamp = now.toISOString().replace(/[:T.-]/g, '').slice(0, 14);
+          const storagePrefix = 'pulp_skills_data_20250825201950_20250910150825_' + timestamp + '_';
+          html = html.replace(/pulp_skills_data_20250825201950_20250910150825_/g, storagePrefix);
+          const fileName = `plant-skills_structure_${currentSite}_${timestamp}.html`;
+          const blob = new Blob([html], { type: 'text/html' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        } catch (err) {
+          alert('Error saving structure: ' + err.message);
+        }
+      }
+
+      // End of local data expiry and structure export functions
+
+      // Prepare default data sets for each site. These are deep copies of the
+      // seed rows and serve as the baseline when first loading or resetting a site.
+      /*
+       * Define default data for each site.  Rather than cloning the generic
+       * seed data for every site, we explicitly set up rows for our three
+       * sites.  The pulp rows mirror the structure of the combined pulp
+       * assessment but have all numeric ratings set to the lowest level and
+       * comments left blank.  The paper rows reflect the paper mill roles with
+       * default ratings of 1 (capabilities) and 'M' retention risk.  The
+       * sharedRow represents the maintenance & reliability role that is
+       * shared between the pulp and paper mills; it is only included on the
+       * "Billingfors (Paper and shared)" view.
+       */
+
+      // Pulp-specific rows with low criticality/capability and low retention risk
+      const pulpRows = [
+        {department: null, cluster: 'Process Engineering', roleArea: 'Process Engineering', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'L', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: 'Maintenance', roleArea: 'Pulp-Specific Maintenance', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'L', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: 'Project Engineering', roleArea: 'Project Engineering', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'L', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: 'Health Safety & Environment', roleArea: 'Health Safety & Environment', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'L', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''}
+      ];
+
+      // Paper-specific rows with default capability ratings of 1 and medium retention risk
+      const paperRows = [
+        {department: null, cluster: null, roleArea: 'Operations Manager (Paper)', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Supervisor (Shift/Area)', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Production / Area Manager – Paper Machine, Finishing & Converting', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Maintenance & Reliability Manager', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Process Engineer', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Project Engineer', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'HSE Manager', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Quality Manager', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'R&D / Technical Services Manager', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Supply Chain Manager', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Logistics & Warehouse Manager', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Continuous Improvement / Lean Manager', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''},
+        {department: null, cluster: null, roleArea: 'Finance / Plant Controller', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'M', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''}
+      ];
+
+      // Row that is shared between pulp and paper (maintenance & reliability)
+      const sharedRow = {department: 'Shared with Papermill', cluster: 'Maintenance & Reliability', roleArea: 'Maintenance & Reliability', criticality: 1, capTech: 1, capExperience: 1, capCrisis: 1, capLeadComm: 1, capSafety: 1, capabilityComment: '', retentionRisk: 'L', retentionComment: '', comments: '', preferredMethod: '-', gapMethodComment: ''};
+
+      // Build the default data object for the single unified plant.  We clone the
+      // seed rows so that edits do not affect the original seed data.  The
+      // previous pulp and paper specific definitions are retained above but
+      // unused now that only one plant is supported.
+      const defaultData = {
+        // Initialise the single Plant site using the paper mill roles from the
+        // Jonköping paper mill.  Each row is cloned from the paperRows array
+        // defined above, with numeric ratings set to 1 and retention risk
+        // defaulting to Low ("L") and empty comments.  This ensures that
+        // the roles displayed on the Plant site reflect the paper mill rather
+        // than the generic seed data.  See the paperRows definition above for
+        // the list of roles and their descriptions.
+        'Plant': paperRows.map(r => {
+          const obj = Object.assign({}, r);
+          obj.criticality = 1;
+          obj.capTech = 1;
+          obj.capExperience = 1;
+          obj.capCrisis = 1;
+          obj.capLeadComm = 1;
+          obj.capSafety = 1;
+          // Default retention risk to Low and clear any comments.  Although
+          // the paperRows default is Medium ("M"), using Low here aligns
+          // with the requested baseline of 1/Low across all metrics.
+          obj.retentionRisk = 'L';
+          obj.capabilityComment = '';
+          obj.retentionComment = '';
+          obj.comments = '';
+          obj.preferredMethod = '-';
+          obj.gapMethodComment = '';
+          return obj;
+        })
+      };
+
+      // If a site-defaults script is present, parse it to override the defaults.
+      // This script may contain a JSON object keyed by site name. The content
+      // can be plain JSON or base64-encoded JSON. When present, it allows
+      // preserving per-site edits when saving the tool.
+      try {
+        const siteDefaultsEl = document.getElementById('site-defaults');
+        if (siteDefaultsEl) {
+          let text = siteDefaultsEl.textContent.trim();
+          let parsed = null;
+          try {
+            // Try to parse plain JSON first
+            parsed = JSON.parse(text);
+          } catch (jsonErr) {
+            try {
+              // Attempt to decode from base64. Use decodeURIComponent/escape
+              // to properly handle Unicode characters if the plain atob fails.
+              const decoded = atob(text);
+              try {
+                parsed = JSON.parse(decoded);
+              } catch (innerErr) {
+                parsed = JSON.parse(decodeURIComponent(escape(decoded)));
+              }
+            } catch (b64Err) {
+              parsed = null;
+            }
+          }
+          if (parsed && typeof parsed === 'object') {
+            Object.keys(parsed).forEach(name => {
+              if (Array.isArray(parsed[name])) {
+                defaultData[name] = parsed[name].map(r => Object.assign({}, r));
+              }
+            });
+            // If a lock state is present in the saved defaults, restore it
+            if (parsed.lock && typeof parsed.lock.structureLocked !== 'undefined') {
+              structureLocked = !!parsed.lock.structureLocked;
+            }
+            // If role definitions are included, override the defaults
+            if (parsed.definitions && typeof parsed.definitions === 'object') {
+              Object.keys(parsed.definitions).forEach(k => {
+                roleDefinitions[k] = parsed.definitions[k];
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse custom site defaults', e);
+      }
+      // Initialize global variables for site, storage, and row data. The site
+      // will be selected by the user via the start screen, so default to
+      // "default" until loadSite() is invoked.
+      let currentSite = null;
+      let siteParam = 'default';
+      let storageKey = 'pulp_skills_data_20250825201950_20250910150825_' + siteParam;
+      let rows = [];
+      // Flag to indicate whether the role structure is locked. When true, users cannot add, rename, or delete roles.
+      // Use var instead of let so the variable is hoisted and accessible
+      // before this point. This prevents runtime errors when the
+      // site-defaults parser assigns to structureLocked before it's
+      // declared. See the bug where a ReferenceError occurs because
+      // structureLocked is accessed before initialization. Declaring
+      // the variable with var makes it hoisted to the top of the function
+      // scope, ensuring it's defined when the site-defaults code runs.
+      var structureLocked = false;
+      // Track whether the summary view is currently visible. When switching
+      // plants, this value will be used to restore the summary state.
+      let summaryVisible = false;
+
+      // Load previously saved data or seed data for the given site. This
+      // function is called when loadSite() is invoked.
+      function loadRowsForSite() {
+        rows = [];
+        // Determine whether we loaded data from localStorage. This helps us
+        // distinguish between user‑saved data and default starting data.
+        let loadedFromStorage = false;
+        try {
+          const saved = localStorage.getItem(storageKey);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+              parsed.forEach((r) => rows.push(Object.assign({}, r)));
+              loadedFromStorage = true;
+            }
+          }
+        } catch (e) {
+          // ignore errors and fall back to seed
+        }
+        // If there is no saved data in storage, fall back to the default
+        // starting data for the current site. We prefer site‑specific
+        // defaults from defaultData for the requested site. If for some
+        // reason that data is missing, we use the seed JSON rows as a
+        // fallback.
+        if (rows.length === 0) {
+          const siteDefaults = defaultData[currentSite];
+          if (siteDefaults && Array.isArray(siteDefaults)) {
+            siteDefaults.forEach((r) => rows.push(Object.assign({}, r)));
+          } else if (seedJson.rows && Array.isArray(seedJson.rows)) {
+            seedJson.rows.forEach((r) => rows.push(Object.assign({}, r)));
+          }
+          loadedFromStorage = false;
+        }
+        // Removed per-site retention risk customization. All sites start with
+        // the same retention risk defined in the seed rows.
+        // Compute derived values
+        rows.forEach((row, idx) => {
+          row.id = idx;
+          row.capabilityAvg = computeCapabilityAvg(row);
+          row.capabilityBucket = bucketCapability(row.capabilityAvg);
+          row.overallRisk = computeOverallRisk(row);
+        });
+      }
+
+      // Load a given site, show the worksheet, and hide the start screen.
+      window.loadSite = function(siteName) {
+        // Commit any in‑progress edits before switching sites. This ensures
+        // that values currently being edited are saved before we potentially
+        // re‑render the table.
+        commitEditing();
+        // Capture the previously selected site before updating state.  We
+        // compare this to the requested site below to decide whether to
+        // reload rows from storage or defaults.
+        const previousSite = currentSite;
+        // Update the current site and storage key based on the requested site
+        currentSite = siteName;
+        siteParam = siteName;
+        storageKey = 'pulp_skills_data_20250825201950_20250910150825_' + siteName;
+        // Prepopulate the mill field only if the user has not already entered
+        // a plant name.  This preserves the plant name typed on the welcome
+        // page when returning to the same site.
+        const millInputEl2 = document.getElementById('inputMill');
+        if (millInputEl2 && !millInputEl2.value) {
+          millInputEl2.value = siteName;
+        }
+        // If we are loading a different site or the rows are empty, read
+        // persisted data (or defaults) for this site.  When the user returns
+        // to the same site from the start screen, we skip this step so that
+        // previously entered data remains intact.  This prevents the Start
+        // button from discarding unsaved work.
+        if (rows.length === 0 || previousSite !== siteName) {
+          loadRowsForSite();
+        }
+        // Render the table view for the selected site
+        renderTable();
+        // Build navigation bar: always include Back to Start
+        const navEl = document.querySelector('.site-nav');
+        if (navEl) {
+          const navHtml = '<strong>Navigation:</strong> <button onclick="showStart()">Back to Start</button>';
+          navEl.innerHTML = navHtml;
+        }
+        // Restore summary visibility if it was previously active.  This ensures
+        // that switching between sites retains the view state (summary vs data).
+        const summaryEl = document.getElementById('summaryView');
+        const dataEl = document.getElementById('dataView');
+        const toggleBtn = document.getElementById('toggleSummary');
+        if (summaryVisible) {
+          generateSummary();
+          summaryEl.classList.remove('hidden');
+          dataEl.classList.add('hidden');
+          if (toggleBtn) toggleBtn.textContent = 'Show Full Data';
+        } else {
+          summaryEl.classList.add('hidden');
+          dataEl.classList.remove('hidden');
+          if (toggleBtn) toggleBtn.textContent = 'Show Summary';
+        }
+        // Show site content and hide start view
+        const siteDiv = document.getElementById('siteContent');
+        const startDiv = document.getElementById('startView');
+        if (siteDiv) siteDiv.style.display = '';
+        if (startDiv) startDiv.style.display = 'none';
+      };
+
+      // Show the start screen and hide the worksheet.
+      window.showStart = function() {
+        // Commit any in-progress edits before hiding the worksheet
+        commitEditing();
+        const siteDiv = document.getElementById('siteContent');
+        const startDiv = document.getElementById('startView');
+        // Also hide the consolidation view when returning to the start so it doesn't remain visible
+        const consDiv = document.getElementById('consolidationView');
+        if (siteDiv) siteDiv.style.display = 'none';
+        if (startDiv) startDiv.style.display = '';
+        if (consDiv) consDiv.style.display = 'none';
+        // Hide summary view and show data view when returning to start.
+        const summaryDiv = document.getElementById('summaryView');
+        const dataDiv = document.getElementById('dataView');
+        const toggleBtn = document.getElementById('toggleSummary');
+        if (summaryDiv) {
+          summaryDiv.classList.add('hidden');
+        }
+        if (dataDiv) {
+          dataDiv.classList.remove('hidden');
+        }
+        // Reset summary button label and state
+        if (toggleBtn) {
+          toggleBtn.textContent = 'Show Summary';
+        }
+        summaryVisible = false;
+      };
+
+      // On initial load, clear any persisted assessment data and then show the
+      // start screen.  Clearing here ensures that previously saved data from
+      // earlier sessions does not pre‑populate the worksheet.  Data entered
+      // during the current session will continue to persist via localStorage
+      // until the page is reloaded or the user clicks the Reset Data button.
+      document.addEventListener('DOMContentLoaded', function() {
+        // On initial load, simply show the welcome page and initialise the expiry countdown.
+        try {
+          showStart();
+        } catch (e) {
+          console.error('Error showing start view:', e);
+        }
+        // Start the expiry countdown on page load so the timer appears in the header
+        startExpiryCountdown();
+      });
+
+      /**
+       * Reset the persisted data for all sites back to the original default
+       * starting values. This function is called from a button on the
+       * welcome page. It writes the default data back into localStorage
+       * for all supported sites and clears any in-memory state. After
+       * resetting, the next time a site is loaded it will read from the
+       * freshly reset storage.
+       */
+      window.resetData = function() {
+        // Confirm resetting but keep role structure by unioning saved and default roles.
+        if (!confirm('Reset all ratings and comments to defaults, keeping the role list?')) return;
+        try {
+          // Determine base prefix for storage keys (remove current siteParam from storageKey)
+          const basePrefix = storageKey.substring(0, storageKey.length - siteParam.length);
+          // For each site, compute the union of roles from saved data and defaultData, then reset values to defaults
+          siteNames.forEach(name => {
+            const roleSet = new Set();
+            // Roles from saved localStorage
+            try {
+              const savedStr = localStorage.getItem(basePrefix + name);
+              if (savedStr) {
+                JSON.parse(savedStr).forEach(r => {
+                  if (r && r.roleArea) roleSet.add(r.roleArea);
+                });
+              }
+            } catch (ex) {
+              console.error('Error reading saved data during reset for', name, ex);
+            }
+            // Roles from defaultData
+            if (defaultData[name]) {
+              defaultData[name].forEach(r => {
+                if (r && r.roleArea) roleSet.add(r.roleArea);
+              });
+            }
+            // Build new rows with default values
+            const newRows = Array.from(roleSet).map(roleName => {
+              return defaultRowTemplate(roleName);
+            });
+            // Save into localStorage
+            try {
+              localStorage.setItem(basePrefix + name, JSON.stringify(newRows));
+            } catch (saveEx) {
+              console.error('Error saving reset data for', name, saveEx);
+            }
+          });
+          // If currently viewing a site, reload its rows from storage and render
+          if (currentSite) {
+            try {
+              const savedStr = localStorage.getItem(storageKey);
+              rows = savedStr ? JSON.parse(savedStr) : [];
+              rows.forEach((row, i) => {
+                row.id = i;
+                row.capabilityAvg = computeCapabilityAvg(row);
+                row.capabilityBucket = bucketCapability(row.capabilityAvg);
+                row.overallRisk = computeOverallRisk(row);
+              });
+              renderTable();
+            } catch (err) {
+              console.error('Failed to reload rows after reset', err);
+            }
+          }
+          // Remove the expiration metadata on reset and restart the countdown
+          try {
+            localStorage.removeItem(LAST_MOD_KEY);
+            localStorage.removeItem(EXPIRY_KEY);
+          } catch (ex) {
+            // ignore
+          }
+          startExpiryCountdown();
+          alert('All ratings/comments reset. Your role list was preserved.');
+        } catch (e) {
+          console.error('Failed to reset data:', e);
+        }
+      };
+
+      // Save the current rows array to localStorage for this site. Invoked after
+      // any edit so data persists between visits.
+      function saveData() {
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(rows));
+        } catch (e) {
+          // Silently ignore storage errors (e.g. quota exceeded)
+        }
+        // Update last modified timestamp and restart expiry countdown on every save
+        try {
+          updateLastModified();
+          startExpiryCountdown();
+        } catch (e) {
+          // ignore errors
+        }
+      }
+      // Carry-forward for display: this returns array of displayRows with departmentDisplay and clusterDisplay plus rowspans
+      function computeDisplayRows() {
+        let displayRows = rows.map(row => Object.assign({}, row));
+        // Carry-forward department & cluster display text
+        let lastDept = null;
+        let lastCluster = null;
+        displayRows.forEach(r => {
+          if (r.department) lastDept = r.department;
+          r.departmentDisplay = r.department || lastDept || '';
+          if (r.cluster) lastCluster = r.cluster;
+          r.clusterDisplay = r.cluster || lastCluster || '';
+        });
+        // Compute grouping for rowspans
+        // First group by departmentDisplay; then clusterDisplay
+        let i = 0;
+        while (i < displayRows.length) {
+          const dept = displayRows[i].departmentDisplay;
+          let j = i;
+          // find consecutive rows with same department
+          while (j < displayRows.length && displayRows[j].departmentDisplay === dept) {
+            j++;
+          }
+          const deptCount = j - i;
+          // inside this block, compute clusters
+          let k = i;
+          while (k < j) {
+            const cluster = displayRows[k].clusterDisplay;
+            let l = k;
+            while (l < j && displayRows[l].clusterDisplay === cluster) {
+              l++;
+            }
+            const clusterCount = l - k;
+            // assign rowspans: if cluster text equals department text, merge cells (colspan=2) on first row
+            for (let m = k; m < l; m++) {
+              displayRows[m].deptRowspan = 0;
+              displayRows[m].clusterRowspan = 0;
+              displayRows[m].clusterMerged = false;
+            }
+            if (deptCount > 0) {
+              // Only set deptRowspan on first cluster group start row
+              displayRows[i].deptRowspan = deptCount;
+            }
+            if (clusterCount > 0) {
+              // If department and cluster labels are identical (and non-empty) then merge into one cell with colspan=2
+              if (cluster === dept && cluster) {
+                // merge cluster into department: we'll mark clusterMerged on first row of this cluster
+                displayRows[k].deptRowspan = clusterCount;
+                displayRows[k].clusterMerged = true;
+              } else {
+                displayRows[k].clusterRowspan = clusterCount;
+              }
+            }
+            k = l;
+          }
+          i = j;
+        }
+        return displayRows;
+      }
+      // Render full data table
+      const tbody = document.querySelector('#dataTable tbody');
+      function renderTable() {
+        // Clear any active inline editor before rebuilding the table. After a
+        // re-render, no cell should be marked as editing.
+        editingCell = null;
+        closePopover();
+        tbody.innerHTML = '';
+        // Build rows directly from the underlying data. Insert a department
+        // section row whenever a new department value is encountered. The
+        // section rows span all visible columns (8) and display the department
+        // name.
+        let prevDept = null;
+        rows.forEach((r) => {
+          // Insert a section header row if this row introduces a new department
+          if (r.department && r.department !== prevDept) {
+            const sectionTr = document.createElement('tr');
+            sectionTr.className = 'dept-section';
+            const td = document.createElement('td');
+            td.colSpan = 8; // number of visible columns: role (includes cluster), crit, cap, ret, overall, comments, pref, gap
+            td.textContent = r.department;
+            sectionTr.appendChild(td);
+            tbody.appendChild(sectionTr);
+            prevDept = r.department;
+          }
+          const tr = document.createElement('tr');
+          tr.dataset.rowId = r.id;
+          // Role cell: include cluster name on top (small) followed by bold role name. Remove separate cluster column.
+          const tdRole = document.createElement('td');
+          tdRole.className = 'col-role';
+          // Show only the role name in bold; cluster names have been removed
+          // from the display per user feedback. Previously the cluster name was
+          // rendered as a small label above the role. Now the role cell
+          // contains only the bold role name to simplify the layout.
+          const roleName = r.roleArea || '-';
+          tdRole.innerHTML = `<strong>${roleName}</strong>`;
+          // Attach a tooltip for the role if a definition exists.  This
+          // provides additional context when hovering over the role name.
+          const defn = roleDefinitions[roleName];
+          if (defn) {
+            tdRole.title = defn;
+          }
+          tr.appendChild(tdRole);
+          // Criticality cell
+          const tdCrit = document.createElement('td');
+          tdCrit.className = 'col-crit';
+          tdCrit.dataset.rowId = r.id;
+          tdCrit.dataset.field = 'criticality';
+          tdCrit.setAttribute('tabindex', 0);
+          const critVal = r.criticality;
+          tdCrit.textContent = critVal != null ? (critVal.toFixed(1)) : '-';
+          // Round criticality to nearest integer for CSS class
+          const critRounded = critVal != null ? Math.round(critVal) : null;
+          const critClass = critRounded ? `crit-${critRounded}` : 'crit-null';
+          tdCrit.classList.add(critClass);
+          tr.appendChild(tdCrit);
+          // Capability cell
+          const tdCap = document.createElement('td');
+          tdCap.className = 'col-cap';
+          tdCap.dataset.rowId = r.id;
+          tdCap.dataset.field = 'capability';
+          tdCap.setAttribute('tabindex', 0);
+          const avg = r.capabilityAvg;
+          tdCap.textContent = avg != null ? avg.toFixed(1) : '-';
+          const capBucket = bucketCapability(avg);
+          if (capBucket) {
+            tdCap.classList.add(`cap-${capBucket}`);
+            const capBg = {1: '#f8d7da', 2: '#fff5d6', 3: '#d7e7d3'};
+            const capFg = {1: '#842029', 2: '#8a6d00', 3: '#004400'};
+            tdCap.style.backgroundColor = capBg[capBucket];
+            tdCap.style.color = capFg[capBucket];
+          }
+          tr.appendChild(tdCap);
+          // Retention risk cell
+          const tdRet = document.createElement('td');
+          tdRet.className = 'col-ret';
+          tdRet.dataset.rowId = r.id;
+          tdRet.dataset.field = 'retentionRisk';
+          tdRet.setAttribute('tabindex', 0);
+          const ret = r.retentionRisk || '-';
+          tdRet.textContent = ret;
+          const retClass = (ret && ret !== '-') ? `ret-${ret}` : 'ret-null';
+          tdRet.classList.add(retClass);
+          tr.appendChild(tdRet);
+          // Overall risk cell
+          const tdOverall = document.createElement('td');
+          tdOverall.className = 'col-overall';
+          const overall = r.overallRisk;
+          tdOverall.textContent = overall || '-';
+          if (overall) tdOverall.classList.add(`overall-${overall}`);
+          tr.appendChild(tdOverall);
+          // Comments cell
+          const tdComments = document.createElement('td');
+          tdComments.className = 'col-comments';
+          tdComments.dataset.rowId = r.id;
+          tdComments.dataset.field = 'comments';
+          tdComments.setAttribute('tabindex', 0);
+          // Build separate sections for capability and retention comments.  Each
+          // section is wrapped in its own <div> to align on separate rows
+          // within the cell.  This prevents the two comment types from
+          // merging together when consolidating data and improves
+          // readability.  We also preserve any additional comments as a
+          // third section if provided.  Bulleted lists are created for
+          // each set of comments.
+          const capLines = [];
+          if (r.capabilityComment) {
+            r.capabilityComment.split(/\n/).forEach(l => {
+              const trimmed = l.trim();
+              if (trimmed) {
+                // Push comment line without adding a dash; dashes are not
+                // necessary and can complicate consolidation
+                capLines.push(trimmed);
+              }
+            });
+          }
+          // Do not insert placeholder bullets for capability when there are no
+          // notes.  Leaving the section empty avoids unwanted characters
+          // being included in consolidated comments.
+          // (capLines remains empty if there are no capability comments)
+          const retLines = [];
+          if (r.retentionComment) {
+              r.retentionComment.split(/\n/).forEach(l => {
+                const trimmed = l.trim();
+                if (trimmed) {
+                  retLines.push(trimmed);
+                }
+              });
+          }
+          const addLines = [];
+          if (r.comments) {
+              r.comments.split(/\n/).forEach(l => {
+                const trimmed = l.trim();
+                if (trimmed) {
+                  addLines.push(trimmed);
+                }
+              });
+          }
+          // Build HTML for each section.  Using div wrappers ensures that
+          // capability and retention comments render on distinct rows.  A
+          // small margin is added between sections for subtle separation.
+          let commentsHTML = '';
+          commentsHTML += '<div><strong>Capability:</strong><br>' +
+            (capLines.length ? capLines.join('<br>') : '') + '</div>';
+          commentsHTML += '<div style="margin-top:4px;"><strong>Retention:</strong><br>' +
+            retLines.join('<br>') + '</div>';
+          if (addLines.length) {
+            commentsHTML += '<div style="margin-top:4px;"><strong>Additional:</strong><br>' +
+              addLines.join('<br>') + '</div>';
+          }
+          tdComments.innerHTML = commentsHTML;
+          // Append comments cell to the row.  We do not bind a direct click
+          // handler here; event delegation on the table body handles
+          // editing.
+          tr.appendChild(tdComments);
+          // Preferred Method cell
+          const tdPref = document.createElement('td');
+          tdPref.className = 'col-pref';
+          tdPref.dataset.rowId = r.id;
+          tdPref.dataset.field = 'preferredMethod';
+          tdPref.setAttribute('tabindex', 0);
+          tdPref.textContent = r.preferredMethod || '-';
+          tr.appendChild(tdPref);
+          // Gap Method Comment cell
+          const tdGap = document.createElement('td');
+          tdGap.className = 'col-gap';
+          tdGap.dataset.rowId = r.id;
+          tdGap.dataset.field = 'gapMethodComment';
+          tdGap.setAttribute('tabindex', 0);
+          tdGap.textContent = r.gapMethodComment || '';
+          tr.appendChild(tdGap);
+          tbody.appendChild(tr);
+        });
+        // After building the table rows, apply all colors comprehensively
+        // to ensure they never appear white or mismatched.
+        reapplyAllColors();
+      }
+
+    /**
+     * Iterate over all capability cells in the current table and apply the
+     * appropriate RAG colour classes and inline styles based solely on the
+     * displayed numeric value. This is used as a final pass after rendering
+     * the table to guard against missed updates and ensure colours never
+     * remain white or mismatched. The function parses the cell text, uses
+     * bucketCapability to determine whether the value is low (1), medium (2)
+     * or high (3), then assigns the cap-* class and inline colours.
+     */
+    function reapplyCapabilityColours() {
+      const capCells = tbody.querySelectorAll('td.col-cap');
+      capCells.forEach(cell => {
+        const text = cell.textContent.trim();
+        const num = parseFloat(text);
+        if (!isNaN(num)) {
+          const bucket = bucketCapability(num);
+          if (bucket) {
+            // Remove any existing capability classes
+            cell.classList.remove('cap-1', 'cap-2', 'cap-3');
+            cell.classList.add(`cap-${bucket}`);
+            // Inline colours to override row striping
+            const capBg = {1: '#f8d7da', 2: '#fff5d6', 3: '#d7e7d3'};
+            const capFg = {1: '#842029', 2: '#8a6d00', 3: '#004400'};
+            cell.style.backgroundColor = capBg[bucket];
+            cell.style.color = capFg[bucket];
+          }
+        }
+      });
+    }
+    
+    /**
+     * Comprehensive function to reapply all color coding to all cell types.
+     * This ensures proper coloring after consolidation or any data updates.
+     * It handles criticality, capability, retention risk, and overall risk cells.
+     */
+    function reapplyAllColors() {
+      // Reapply criticality colors
+      const critCells = tbody.querySelectorAll('td.col-crit');
+      critCells.forEach(cell => {
+        const text = cell.textContent.trim();
+        const num = parseFloat(text);
+        
+        // Remove all existing criticality classes
+        cell.classList.remove('crit-1', 'crit-2', 'crit-3', 'crit-null');
+        
+        if (!isNaN(num)) {
+          const rounded = Math.round(num);
+          cell.classList.add(`crit-${rounded}`);
+          // Apply inline styles to ensure colors show
+          const critBg = {1: '#d7e7d3', 2: '#fff5d6', 3: '#f8d7da'};
+          const critFg = {1: '#004400', 2: '#8a6d00', 3: '#842029'};
+          if (critBg[rounded]) {
+            cell.style.backgroundColor = critBg[rounded] + ' !important';
+            cell.style.color = critFg[rounded] + ' !important';
+          }
+        } else {
+          cell.classList.add('crit-null');
+        }
+      });
+      
+      // Reapply capability colors (use existing function)
+      reapplyCapabilityColours();
+      
+      // Reapply retention risk colors
+      const retCells = tbody.querySelectorAll('td.col-ret');
+      retCells.forEach(cell => {
+        const text = cell.textContent.trim();
+        
+        // Remove all existing retention classes
+        cell.classList.remove('ret-L', 'ret-M', 'ret-H', 'ret-null');
+        
+        if (text === 'L' || text === 'M' || text === 'H') {
+          cell.classList.add(`ret-${text}`);
+          // Apply inline styles to ensure colors show
+          const retBg = {L: '#d7e7d3', M: '#fff5d6', H: '#f8d7da'};
+          const retFg = {L: '#004400', M: '#8a6d00', H: '#842029'};
+          if (retBg[text]) {
+            cell.style.backgroundColor = retBg[text] + ' !important';
+            cell.style.color = retFg[text] + ' !important';
+          }
+        } else {
+          cell.classList.add('ret-null');
+        }
+      });
+      
+      // Reapply overall risk colors
+      const overallCells = tbody.querySelectorAll('td.col-overall');
+      overallCells.forEach(cell => {
+        const text = cell.textContent.trim();
+        
+        // Remove all existing overall risk classes
+        cell.classList.remove('overall-Low', 'overall-Medium', 'overall-High', 'overall-Critical');
+        
+        if (text === 'Low' || text === 'Medium' || text === 'High' || text === 'Critical') {
+          cell.classList.add(`overall-${text}`);
+          // Apply inline styles to ensure colors show
+          const overallBg = {
+            Low: '#d7e7d3',
+            Medium: '#fff5d6', 
+            High: '#f8d7da',
+            Critical: '#e5b7b9'
+          };
+          const overallFg = {
+            Low: '#004400',
+            Medium: '#8a6d00',
+            High: '#842029',
+            Critical: '#660000'
+          };
+          if (overallBg[text]) {
+            cell.style.backgroundColor = overallBg[text] + ' !important';
+            cell.style.color = overallFg[text] + ' !important';
+            if (text === 'Critical') {
+              // Add animation for critical
+              cell.style.animation = 'pulse 2s infinite !important';
+            }
+          }
+        }
+      });
+    }
+      // Render initial table
+      renderTable();
+      // Editing interactions
+      // Track the currently open popover (e.g. capability popover) and the
+      // cell currently being edited inline (select or textarea). This allows
+      // us to prevent reopening editors when a user is interacting with an
+      // existing control.
+      // Use var for currentPopover so it is hoisted and accessible before
+      // initialization. Otherwise references in functions called prior to this
+      // declaration (such as renderTable -> closePopover) will throw a
+      // ReferenceError due to the temporal dead zone of let/const.
+      var currentPopover = null;
+      // Use var here so it is hoisted to the top of the IIFE. Without hoisting,
+      // referencing editingCell before its declaration inside functions would
+      // result in a ReferenceError during early calls to renderTable().
+      var editingCell = null;
+      // Holds the consolidated rows when processing multiple CSV files. This
+      // is used to temporarily store averaged data and comments before
+      // updating the main table. It is reset whenever new files are
+      // processed.
+      let consolidatedData = [];
+      function closePopover() {
+        if (currentPopover) {
+          document.body.removeChild(currentPopover);
+          currentPopover = null;
+        }
+      }
+      document.addEventListener('click', (evt) => {
+        const target = evt.target;
+        // If a capability popover is open and the click occurred outside of it and not on another capability cell,
+        // commit any outstanding edits and close the popover. We retrieve the associated row ID from the popover's
+        // dataset so we can recompute derived fields and persist changes. After committing we reset editingCell.
+        if (currentPopover && !currentPopover.contains(target) && !target.closest('.col-cap')) {
+          // Commit changes if possible
+          const rowId = currentPopover.dataset.rowId;
+          if (rowId !== undefined) {
+            const idNum = parseInt(rowId);
+            if (!isNaN(idNum)) {
+              updateRow(idNum);
+            }
+          }
+          editingCell = null;
+          closePopover();
+        }
+      });
+      document.addEventListener('keydown', (evt) => {
+        if (evt.key === 'Escape' && currentPopover) {
+          closePopover();
+        }
+      });
+      // Helper to update row and re-render row only
+      function updateRow(id) {
+        const row = rows[id];
+        row.capabilityAvg = computeCapabilityAvg(row);
+        row.capabilityBucket = bucketCapability(row.capabilityAvg);
+        row.overallRisk = computeOverallRisk(row);
+        // Persist data to storage for this site
+        saveData();
+        // Re-render entire table (simpler) for now
+        renderTable();
+        // Force reapply all colors after a short delay to ensure DOM is updated
+        setTimeout(() => {
+          reapplyAllColors();
+        }, 50);
+      }
+
+      /**
+       * Commit any in-progress inline edits by blurring the active editor. When
+       * a select or textarea is open, calling blur() will trigger its
+       * respective blur handler which calls updateRow() and saveData(). This
+       * function should be called before switching sites or returning to
+       * the start screen to ensure no data is lost.
+       */
+      function commitEditing() {
+        if (editingCell) {
+          const input = editingCell.querySelector('input, select, textarea');
+          if (input) {
+            input.blur();
+          }
+        }
+      }
+      // Event delegation for cell clicks
+      tbody.addEventListener('click', function(evt) {
+        /**
+         * Normalize the click target to the containing TD element. Sometimes
+         * users may click on text nodes or child elements; walk up the DOM
+         * until we hit a TD or abort if not found.
+         */
+        let el = evt.target;
+        while (el && el.tagName !== 'TD') {
+          el = el.parentElement;
+        }
+        const cell = el;
+        if (!cell) return;
+        // If a select or textarea is already open for editing, avoid
+        // reentering edit mode. Allow clicks inside the currently
+        // editing cell (e.g. to open dropdown) to be handled by the
+        // control itself but prevent creating another editor on blur.
+        if (editingCell) {
+          // If click is inside the active editing cell, do nothing here.
+          if (editingCell.contains(evt.target)) {
+            return;
+          }
+        }
+        // If a popover (for capability editing) is open, do not open a new editor
+        if (currentPopover) {
+          return;
+        }
+
+        // Determine row id either from cell or fallback to its parent TR
+        let rowId = parseInt(cell.dataset.rowId);
+        if (isNaN(rowId)) {
+          const trEl = cell.closest('tr');
+          if (trEl && trEl.dataset && trEl.dataset.rowId) {
+            rowId = parseInt(trEl.dataset.rowId);
+          }
+        }
+        // Determine which editor to invoke based on CSS class rather than
+        // relying solely on data-field attributes. This guards against cases
+        // where dataset may be missing due to DOM quirks (e.g. merged cells).
+        if (cell.classList.contains('col-comments')) {
+          editComments(cell, rowId);
+          return;
+        }
+        if (cell.classList.contains('col-crit')) {
+          editCriticality(cell, rowId);
+          return;
+        }
+        if (cell.classList.contains('col-ret')) {
+          editRetention(cell, rowId);
+          return;
+        }
+        if (cell.classList.contains('col-pref')) {
+          editPreferredMethod(cell, rowId);
+          return;
+        }
+        if (cell.classList.contains('col-gap')) {
+          editGapComment(cell, rowId);
+          return;
+        }
+        if (cell.classList.contains('col-cap')) {
+          editCapabilityDimensions(cell, rowId);
+          return;
+        }
+      });
+      // Editing functions
+      function editCriticality(cell, id) {
+        // Prevent multiple editors: if this cell is already being edited, ignore
+        if (editingCell) return;
+        const row = rows[id];
+        const select = document.createElement('select');
+        [1,2,3].forEach(val => {
+          const opt = document.createElement('option');
+          opt.value = val;
+          opt.textContent = val.toFixed(1);
+          if (row.criticality === val) opt.selected = true;
+          select.appendChild(opt);
+        });
+        select.style.width = '100%';
+        cell.innerHTML = '';
+        cell.appendChild(select);
+        select.focus();
+        // Immediately update and save when the user selects a new value. This
+        // commits the change without requiring the user to click away. After
+        // updating, reset editingCell to allow new edits.
+        select.addEventListener('change', () => {
+          row.criticality = parseInt(select.value);
+          updateRow(id);
+          editingCell = null;
+        });
+        // Preserve a blur handler to clean up if the user clicks away without
+        // changing the value. It won't save again because updateRow was
+        // already invoked on change.
+        select.addEventListener('blur', () => {
+          if (editingCell) {
+            updateRow(id);
+            editingCell = null;
+          }
+        });
+        // Mark this cell as currently being edited
+        editingCell = cell;
+      }
+      function editRetention(cell, id) {
+        // Inline editor for retention risk: similar behaviour to criticality and preferred
+        // Avoid opening multiple editors at once
+        if (editingCell) return;
+        const row = rows[id];
+        const select = document.createElement('select');
+        ['-','L','M','H'].forEach(val => {
+          const opt = document.createElement('option');
+          opt.value = val;
+          opt.textContent = val;
+          if ((row.retentionRisk || '-') === val) opt.selected = true;
+          select.appendChild(opt);
+        });
+        select.style.width = '100%';
+        cell.innerHTML = '';
+        cell.appendChild(select);
+        select.focus();
+        // Immediately update and save when a new retention risk is chosen
+        select.addEventListener('change', () => {
+          const val = select.value;
+          row.retentionRisk = (val === '-') ? '-' : val;
+          updateRow(id);
+          editingCell = null;
+        });
+        // Blur handler only commits if still editing (no change occurred)
+        select.addEventListener('blur', () => {
+          if (editingCell) {
+            updateRow(id);
+            editingCell = null;
+          }
+        });
+        editingCell = cell;
+      }
+      function editPreferredMethod(cell, id) {
+        // Prevent multiple editors
+        if (editingCell) return;
+        const row = rows[id];
+        const select = document.createElement('select');
+        ['-','build','buy','borrow','bot','retain'].forEach(val => {
+          const opt = document.createElement('option');
+          opt.value = val;
+          opt.textContent = val;
+          if ((row.preferredMethod || '-') === val) opt.selected = true;
+          select.appendChild(opt);
+        });
+        // Remove any duplicate entries that may have been added inadvertently by the browser.
+        {
+          const seen = new Set();
+          const toRemove = [];
+          Array.from(select.options).forEach(opt => {
+            if (seen.has(opt.value)) {
+              toRemove.push(opt);
+            } else {
+              seen.add(opt.value);
+            }
+          });
+          toRemove.forEach(opt => opt.remove());
+        }
+        select.style.width = '100%';
+        cell.innerHTML = '';
+        cell.appendChild(select);
+        select.focus();
+        // Immediately update and save when the user selects a preferred method
+        select.addEventListener('change', () => {
+          row.preferredMethod = select.value === '-' ? '-' : select.value;
+          updateRow(id);
+          editingCell = null;
+        });
+        // Blur handler ensures a commit if no change occurred before leaving
+        select.addEventListener('blur', () => {
+          if (editingCell) {
+            updateRow(id);
+            editingCell = null;
+          }
+        });
+        editingCell = cell;
+      }
+      function editComments(cell, id) {
+        // Inline editing of comments using two separate textareas: one for
+        // capability comments and one for retention comments.  Changes are
+        // automatically committed when the user clicks away from the
+        // editing container.  This eliminates the need for explicit
+        // Save/Cancel buttons and still allows the user to edit both
+        // comment types within a single interaction.
+        if (editingCell) return;
+        const row = rows[id];
+        // Close any existing popover when editing comments
+        closePopover();
+        // Build the editing UI
+        cell.innerHTML = '';
+        const container = document.createElement('div');
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.gap = '4px';
+        // Capability label and textarea
+        const capLabel = document.createElement('label');
+        capLabel.textContent = 'Capability:';
+        const capTextarea = document.createElement('textarea');
+        capTextarea.style.width = '100%';
+        capTextarea.style.minHeight = '60px';
+        capTextarea.value = row.capabilityComment || '';
+        // Retention label and textarea
+        const retLabel = document.createElement('label');
+        retLabel.textContent = 'Retention:';
+        const retTextarea = document.createElement('textarea');
+        retTextarea.style.width = '100%';
+        retTextarea.style.minHeight = '60px';
+        retTextarea.value = row.retentionComment || '';
+        // When focus leaves the editing container, automatically commit
+        // any changes entered by the user.  This replaces explicit Save/Cancel
+        // buttons.  We listen for focusout events and check if the new
+        // focused element is outside of the editing container.  If it is,
+        // we update the underlying data and re-render the row.
+        container.addEventListener('focusout', (evt) => {
+          // relatedTarget may be null if focus leaves the document
+          const newTarget = evt.relatedTarget;
+          if (!container.contains(newTarget)) {
+            // Commit changes
+            row.capabilityComment = capTextarea.value.trim();
+            row.retentionComment = retTextarea.value.trim();
+            updateRow(id);
+            editingCell = null;
+          }
+        });
+        // Assemble the UI
+        container.appendChild(capLabel);
+        container.appendChild(capTextarea);
+        container.appendChild(retLabel);
+        container.appendChild(retTextarea);
+        cell.appendChild(container);
+        editingCell = cell;
+      }
+      function editGapComment(cell, id) {
+        // Inline editing of gap comment. Ensure only one editor is open at a time.
+        if (editingCell) return;
+        const row = rows[id];
+        const textarea = document.createElement('textarea');
+        textarea.style.width = '100%';
+        textarea.style.minHeight = '60px';
+        textarea.value = row.gapMethodComment || '';
+        cell.innerHTML = '';
+        cell.appendChild(textarea);
+        textarea.focus();
+        textarea.addEventListener('blur', () => {
+          row.gapMethodComment = textarea.value.trim();
+          updateRow(id);
+          editingCell = null;
+        });
+        editingCell = cell;
+      }
+      function editCapabilityDimensions(cell, id) {
+        // open a popover near cell with five dropdowns
+        closePopover();
+        const row = rows[id];
+        const rect = cell.getBoundingClientRect();
+        const pop = document.createElement('div');
+        pop.className = 'popover';
+        // Use fixed positioning so the popover is placed relative to the viewport
+        pop.style.position = 'fixed';
+        // Build controls
+        const dims = [
+          { key: 'capTech', label: 'Technical knowledge' },
+          { key: 'capExperience', label: 'Experience' },
+          { key: 'capCrisis', label: 'Crisis management' },
+          { key: 'capLeadComm', label: 'Leadership & Communication' },
+          { key: 'capSafety', label: 'Safety mindset' }
+        ];
+        // Mark this cell as being edited so commitEditing() can attempt to
+        // finish any in-progress editing when switching pages. Although
+        // capability editing uses a popover with separate selects, we still
+        // assign editingCell to the capability cell so commitEditing() will
+        // attempt to blur it when navigating away. This helps ensure that any
+        // unsaved changes are committed before leaving the page.
+        editingCell = cell;
+
+        dims.forEach(dim => {
+          const label = document.createElement('label');
+          label.textContent = dim.label;
+          const select = document.createElement('select');
+          ['','1','2','3'].forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v;
+            opt.textContent = v || '-';
+            const current = row[dim.key];
+            if (v === '' && (current === null || current === undefined)) opt.selected = true;
+            if (v && parseInt(v) === current) opt.selected = true;
+            select.appendChild(opt);
+          });
+          // Persist capability changes immediately. When a user selects a new
+          // value we update the underlying row property, recompute derived
+          // fields and save to localStorage via updateRow(). This ensures that
+          // switching sites or returning to the start page will not discard
+          // capability edits.
+          select.addEventListener('change', () => {
+            const val = select.value;
+            // Update the underlying capability dimension on this row.  Do not
+            // immediately close the popover or re-render the table; instead
+            // compute the derived fields and persist the data silently.  The
+            // table will refresh when the user clicks outside the popover,
+            // which triggers the global click handler to commit changes.
+            row[dim.key] = val ? parseInt(val) : null;
+            // Recompute capability average, bucket and overall risk on the fly.
+            row.capabilityAvg = computeCapabilityAvg(row);
+            row.capabilityBucket = bucketCapability(row.capabilityAvg);
+            row.overallRisk = computeOverallRisk(row);
+            // Persist but do not re-render.
+            saveData();
+          });
+          label.appendChild(select);
+          pop.appendChild(label);
+        });
+        // Assign the row ID to the popover so we know which row to commit when closing
+        document.body.appendChild(pop);
+        pop.dataset.rowId = id;
+        /*
+         * After appending the popover to the body, measure its dimensions and
+         * position it within the viewport. We compute a tentative top/left
+         * relative to the clicked cell (below the cell by default) and then
+         * adjust to ensure the entire popover remains visible. Without this,
+         * the popover could extend beyond the viewport, making part of it
+         * unreachable on smaller screens or when the table is scrolled toward
+         * the bottom.
+         */
+        const popRect = pop.getBoundingClientRect();
+        // Default placement: below the cell
+        let top = rect.bottom;
+        let left = rect.left;
+        // If the popover would overflow the bottom of the viewport, place it above
+        if (top + popRect.height > window.innerHeight) {
+          top = rect.top - popRect.height;
+        }
+        // Clamp vertical position within viewport
+        if (top < 0) top = 0;
+        if (top + popRect.height > window.innerHeight) {
+          top = window.innerHeight - popRect.height;
+        }
+        // Clamp horizontal position within viewport
+        if (left + popRect.width > window.innerWidth) {
+          left = window.innerWidth - popRect.width;
+        }
+        if (left < 0) left = 0;
+        pop.style.top = `${top}px`;
+        pop.style.left = `${left}px`;
+        // Record this popover so it can be closed later
+        currentPopover = pop;
+        pop.tabIndex = -1;
+        pop.focus();
+      }
+      // Summary view generation
+      function generateSummary() {
+        const container = document.getElementById('summaryView');
+        container.innerHTML = '';
+        /**
+         * This function builds an interactive summary view containing:
+         * 1. A critical spotlight table for roles with High or Critical overall risk.
+         * 2. A scatter chart of Capability vs. Criticality.
+         * 3. A scatter chart of Retention Risk vs. Criticality.
+         * 4. A bar chart showing the distribution of overall risk categories.
+         * 5. A cross‑table linking overall risk to preferred method counts.
+         * 6. A word summary listing role areas grouped by overall risk.
+         */
+        // Helper to build a card
+        function createCard(titleText) {
+          const card = document.createElement('div');
+          card.className = 'summary-card';
+          const title = document.createElement('h2');
+          title.textContent = titleText;
+          card.appendChild(title);
+          return card;
+        }
+        // Critical spotlight (full listing). Show all roles (13) sorted by overall risk
+        // severity: Critical first, then High, Medium, Low, and unset last. Remove
+        // the department and cluster columns to focus on the role and risk values.
+        {
+          // Create a sorted copy of rows
+          const sorted = rows.slice().sort((a, b) => {
+            const order = {Critical:0, High:1, Medium:2, Low:3, '-':4, undefined:4};
+            const aKey = a.overallRisk || '-';
+            const bKey = b.overallRisk || '-';
+            return order[aKey] - order[bKey];
+          });
+          const card = createCard('As-Is Summary');
+          // Mark this card as the As‑Is summary so the CSS sizing rules apply
+          card.classList.add('as-is');
+          const table = document.createElement('table');
+          const thead = document.createElement('thead');
+          // Only include columns for Role Area and risk-related fields
+          // Reorder columns so Criticality appears before Capability (avg) per user request
+          thead.innerHTML = '<tr><th>Role Area</th><th>Criticality</th><th>Capability (avg)</th><th>Retention Risk</th><th>Overall Risk</th></tr>';
+          table.appendChild(thead);
+          const tbodyEl = document.createElement('tbody');
+          sorted.forEach(r => {
+            const tr = document.createElement('tr');
+            // Role area
+            const tdRole = document.createElement('td');
+            tdRole.textContent = r.roleArea || '-';
+            tr.appendChild(tdRole);
+            // Criticality (before capability)
+            const tdCrit = document.createElement('td');
+            if (r.criticality != null) {
+              tdCrit.textContent = r.criticality.toFixed(1);
+              tdCrit.classList.add(`crit-${Math.round(r.criticality)}`);
+            } else {
+              tdCrit.textContent = '-';
+              tdCrit.classList.add('crit-null');
+            }
+            tr.appendChild(tdCrit);
+            // Capability average with RAG styling
+            const tdCap = document.createElement('td');
+            tdCap.textContent = r.capabilityAvg != null ? r.capabilityAvg.toFixed(1) : '-';
+            const capBucket = bucketCapability(r.capabilityAvg);
+            if (capBucket) {
+              tdCap.classList.add(`cap-${capBucket}`);
+              const capBg = {1: '#f8d7da', 2: '#fff5d6', 3: '#d7e7d3'};
+              const capFg = {1: '#842029', 2: '#8a6d00', 3: '#004400'};
+              tdCap.style.backgroundColor = capBg[capBucket];
+              tdCap.style.color = capFg[capBucket];
+            }
+            tr.appendChild(tdCap);
+            // Retention risk
+            const tdRet = document.createElement('td');
+            const retVal = r.retentionRisk || '-';
+            tdRet.textContent = retVal;
+            const retClass = (retVal && retVal !== '-') ? `ret-${retVal}` : 'ret-null';
+            tdRet.classList.add(retClass);
+            tr.appendChild(tdRet);
+            // Overall risk
+            const tdOverall = document.createElement('td');
+            const risk = r.overallRisk || '-';
+            tdOverall.textContent = risk;
+            if (risk && risk !== '-') {
+              tdOverall.classList.add(`overall-${risk}`);
+            }
+            tr.appendChild(tdOverall);
+            tbodyEl.appendChild(tr);
+          });
+          table.appendChild(tbodyEl);
+          card.appendChild(table);
+          container.appendChild(card);
+
+        // Capability As‑Is table moved here for better grouping. This
+        // simplified heatmap lists only the capability dimensions and
+        // overall capability rating. It appears immediately after the
+        // As‑Is summary.
+        {
+          const capCard = createCard('Capability As-Is');
+          capCard.classList.add('cap-heatmap');
+          const capTable = document.createElement('table');
+          const capThead = document.createElement('thead');
+          capThead.innerHTML = '<tr>' +
+            '<th>Role Area</th>' +
+            '<th>Technical knowledge</th>' +
+            '<th>Experience</th>' +
+            '<th>Crisis management</th>' +
+            '<th>Leadership &amp; Communication</th>' +
+            '<th>Safety mindset</th>' +
+            '<th>Overall capability rating</th>' +
+            '</tr>';
+          capTable.appendChild(capThead);
+          const capTbody = document.createElement('tbody');
+          rows.forEach(r => {
+            const tr2 = document.createElement('tr');
+            const tdRole2 = document.createElement('td');
+            tdRole2.textContent = r.roleArea || '-';
+            tr2.appendChild(tdRole2);
+            function appendCapCell2(value) {
+              const td = document.createElement('td');
+              if (value != null && value !== '') {
+                const num = Number(value);
+                if (!isNaN(num)) {
+                  td.textContent = num.toFixed(1);
+                  const bucket = bucketCapability(num);
+                  if (bucket) {
+                    td.classList.add(`cap-${bucket}`);
+                  }
+                } else {
+                  td.textContent = value;
+                }
+              } else {
+                td.textContent = '-';
+              }
+              return td;
+            }
+            tr2.appendChild(appendCapCell2(r.capTech));
+            tr2.appendChild(appendCapCell2(r.capExperience));
+            tr2.appendChild(appendCapCell2(r.capCrisis));
+            tr2.appendChild(appendCapCell2(r.capLeadComm));
+            tr2.appendChild(appendCapCell2(r.capSafety));
+            // Overall capability rating
+            const tdCapAvg2 = document.createElement('td');
+            if (r.capabilityAvg != null) {
+              tdCapAvg2.textContent = r.capabilityAvg.toFixed(1);
+              const bucket = bucketCapability(r.capabilityAvg);
+              if (bucket) tdCapAvg2.classList.add(`cap-${bucket}`);
+            } else {
+              tdCapAvg2.textContent = '-';
+            }
+            tr2.appendChild(tdCapAvg2);
+            capTbody.appendChild(tr2);
+          });
+          capTable.appendChild(capTbody);
+          capCard.appendChild(capTable);
+          container.appendChild(capCard);
+        }
+        }
+        // Prepare data arrays for tables and quadrants
+        const riskCounts = {Low:0, Medium:0, High:0, Critical:0};
+        const riskMethodCounts = {};
+        // Quadrant containers
+        const capCritQuads = {
+          HH: [], // High capability, High criticality
+          HL: [], // High capability, Low criticality
+          LH: [], // Low capability, High criticality
+          LL: []  // Low capability, Low criticality
+        };
+        const retCritQuads = {
+          HH: [], // High retention risk, High criticality
+          HL: [], // High retention risk, Low criticality
+          LH: [], // Low retention risk, High criticality
+          LL: []  // Low retention risk, Low criticality
+        };
+        rows.forEach(r => {
+          // Overall risk distribution
+          if (r.overallRisk) {
+            riskCounts[r.overallRisk] = (riskCounts[r.overallRisk] || 0) + 1;
+          }
+          // Risk vs preferred method cross table
+          const risk = r.overallRisk || '-';
+          const method = r.preferredMethod || '-';
+          if (!riskMethodCounts[risk]) riskMethodCounts[risk] = {};
+          riskMethodCounts[risk][method] = (riskMethodCounts[risk][method] || 0) + 1;
+          // Compute high/low for capability and criticality
+          const capHigh = (r.capabilityAvg != null && r.capabilityAvg >= 2);
+          const critHigh = (r.criticality != null && r.criticality >= 2);
+          const capCritKey = (capHigh ? 'H' : 'L') + (critHigh ? 'H' : 'L');
+          capCritQuads[capCritKey].push(r.roleArea);
+          // Compute high/low for retention risk (H and M considered high)
+          const retNum = mapRetentionNum(r.retentionRisk);
+          const retHigh = (retNum != null && retNum >= 2);
+          const retCritKey = (retHigh ? 'H' : 'L') + (critHigh ? 'H' : 'L');
+          retCritQuads[retCritKey].push(r.roleArea);
+        });
+        // Quadrant: Capability vs Criticality
+        {
+          const card = createCard('Capability vs Criticality (Quadrants)');
+          const quadWrap = document.createElement('div');
+          quadWrap.style.display = 'flex';
+          quadWrap.style.flexWrap = 'wrap';
+          const quadDefs = [
+            // High criticality quadrants first: high capability/high crit and low capability/high crit
+            { key:'HH', title:'High Capability & High Criticality' },
+            { key:'LH', title:'Low Capability & High Criticality' },
+            // Then low criticality quadrants: high capability/low crit and low capability/low crit
+            { key:'HL', title:'High Capability & Low Criticality' },
+            { key:'LL', title:'Low Capability & Low Criticality' }
+          ];
+          quadDefs.forEach(def => {
+            const box = document.createElement('div');
+            box.style.flex = '1 0 45%';
+            box.style.border = '1px solid #ddd';
+            box.style.margin = '4px';
+            box.style.padding = '4px';
+            // Apply RAG colour coding to capability vs criticality quadrants.
+            // High capability & high/low criticality are green; low capability & high criticality is red; low capability & low criticality is amber.
+            const capCritColors = { HH: '#d7e7d3', HL: '#d7e7d3', LH: '#f8d7da', LL: '#fff5d6' };
+            const capCritText = { HH: '#004400', HL: '#004400', LH: '#842029', LL: '#8a6d00' };
+            const bgCol = capCritColors[def.key] || '#fff';
+            const fgCol = capCritText[def.key] || '#333';
+            box.style.backgroundColor = bgCol;
+            box.style.color = fgCol;
+            const heading = document.createElement('strong');
+            heading.textContent = def.title;
+            box.appendChild(heading);
+            const roles = capCritQuads[def.key] || [];
+            if (roles.length) {
+              const ul = document.createElement('ul');
+              roles.forEach(name => {
+                const li = document.createElement('li');
+                li.textContent = name;
+                ul.appendChild(li);
+              });
+              box.appendChild(ul);
+            } else {
+              const span = document.createElement('span');
+              span.textContent = ' none';
+              box.appendChild(span);
+            }
+            quadWrap.appendChild(box);
+          });
+          card.appendChild(quadWrap);
+          container.appendChild(card);
+        }
+        // Quadrant: Retention Risk vs Criticality
+        {
+          const card = createCard('Retention Risk vs Criticality (Quadrants)');
+          const quadWrap = document.createElement('div');
+          quadWrap.style.display = 'flex';
+          quadWrap.style.flexWrap = 'wrap';
+          const quadDefs = [
+            // High criticality quadrants first (high retention/high criticality and low retention/high criticality)
+            { key:'HH', title:'High Retention Risk & High Criticality' },
+            { key:'LH', title:'Low Retention Risk & High Criticality' },
+            // Then low criticality quadrants
+            { key:'HL', title:'High Retention Risk & Low Criticality' },
+            { key:'LL', title:'Low Retention Risk & Low Criticality' }
+          ];
+          quadDefs.forEach(def => {
+            const box = document.createElement('div');
+            // The quadrant boxes share styling with the capability vs criticality
+            // quadrants; each box is roughly half width, with padding and a border.
+            box.style.flex = '1 0 45%';
+            box.style.border = '1px solid #ddd';
+            box.style.margin = '4px';
+            box.style.padding = '4px';
+            /*
+             * Apply RAG colour coding based on the combination of retention risk
+             * (high/low) and criticality (high/low). High retention risk and
+             * high criticality represent the highest concern and are coloured
+             * red. High retention with low criticality is amber, while low
+             * retention with high criticality is amber as well. Low retention
+             * combined with low criticality is green. These colours align
+             * with the main RAG scheme used throughout the assessment.
+             */
+            const retCritColors = { HH: '#f8d7da', HL: '#fff5d6', LH: '#fff5d6', LL: '#d7e7d3' };
+            const retCritText = { HH: '#842029', HL: '#8a6d00', LH: '#8a6d00', LL: '#004400' };
+            const bgCol = retCritColors[def.key] || '#fff';
+            const fgCol = retCritText[def.key] || '#333';
+            box.style.backgroundColor = bgCol;
+            box.style.color = fgCol;
+            const heading = document.createElement('strong');
+            heading.textContent = def.title;
+            box.appendChild(heading);
+            const roles = retCritQuads[def.key] || [];
+            if (roles.length) {
+              const ul = document.createElement('ul');
+              roles.forEach(name => {
+                const li = document.createElement('li');
+                li.textContent = name;
+                ul.appendChild(li);
+              });
+              box.appendChild(ul);
+            } else {
+              const span = document.createElement('span');
+              span.textContent = ' none';
+              box.appendChild(span);
+            }
+            quadWrap.appendChild(box);
+          });
+          card.appendChild(quadWrap);
+          container.appendChild(card);
+        }
+        // Bar chart: Overall risk distribution
+        {
+          const card = createCard('Overall Risk Distribution');
+          const canvas = document.createElement('canvas');
+          canvas.width = 400;
+          canvas.height = 260;
+          card.appendChild(canvas);
+          drawBar(canvas, riskCounts);
+          container.appendChild(card);
+        }
+        // Risk vs Preferred Method cross table removed as per requirements.
+
+        // Roles by risk level summary
+        {
+          const card = createCard('Roles by Risk Level');
+          const listContainer = document.createElement('div');
+          ['Critical','High','Medium','Low','-'].forEach(level => {
+            const roles = rows.filter(r => (r.overallRisk || '-') === level);
+            const section = document.createElement('div');
+            const heading = document.createElement('strong');
+            heading.textContent = (level === '-' ? 'Unset' : level) + ':';
+            section.appendChild(heading);
+            if (roles.length) {
+              const ul = document.createElement('ul');
+              roles.forEach(r => {
+                const li = document.createElement('li');
+                // Determine preferred method text
+                const methodText = r.preferredMethod && r.preferredMethod !== '-' ? r.preferredMethod : 'Unset';
+                // Build display string: role name followed by arrow and preferred method
+                li.textContent = `${r.roleArea} -> ${methodText}`;
+                ul.appendChild(li);
+              });
+              section.appendChild(ul);
+            } else {
+              const span = document.createElement('span');
+              span.textContent = ' none';
+              section.appendChild(span);
+            }
+            listContainer.appendChild(section);
+          });
+          card.appendChild(listContainer);
+          container.appendChild(card);
+        }
+      }
+
+      /**
+       * Draw a simple scatter chart on the provided canvas.
+       * data: array of {x, y, label}. options: {xLabel, yLabel, xMin, xMax, yMin, yMax}
+       */
+      function drawScatter(canvas, data, options) {
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+        // Margins
+        const marginLeft = 40;
+        const marginBottom = 30;
+        const marginTop = 20;
+        const marginRight = 20;
+        ctx.clearRect(0,0,w,h);
+        ctx.font = '10px sans-serif';
+        ctx.fillStyle = '#333';
+        ctx.strokeStyle = '#333';
+        // Draw axes
+        ctx.beginPath();
+        ctx.moveTo(marginLeft, h - marginBottom);
+        ctx.lineTo(w - marginRight, h - marginBottom);
+        ctx.moveTo(marginLeft, h - marginBottom);
+        ctx.lineTo(marginLeft, marginTop);
+        ctx.stroke();
+        // Axis labels
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.fillText(options.xLabel, (w - marginRight + marginLeft)/2, h - 5);
+        ctx.rotate(-Math.PI/2);
+        ctx.fillText(options.yLabel, - (marginTop + (h - marginBottom))/2, 12);
+        ctx.restore();
+        // Ticks and labels for x and y (assume integer values 1-3)
+        const xMin = options.xMin;
+        const xMax = options.xMax;
+        const yMin = options.yMin;
+        const yMax = options.yMax;
+        for (let i = xMin; i <= xMax; i++) {
+          const xPos = marginLeft + (i - xMin) * (w - marginLeft - marginRight) / (xMax - xMin);
+          ctx.beginPath();
+          ctx.moveTo(xPos, h - marginBottom);
+          ctx.lineTo(xPos, h - marginBottom + 4);
+          ctx.stroke();
+          ctx.textAlign = 'center';
+          ctx.fillText(i.toString(), xPos, h - marginBottom + 14);
+        }
+        for (let j = yMin; j <= yMax; j++) {
+          const yPos = h - marginBottom - (j - yMin) * (h - marginTop - marginBottom) / (yMax - yMin);
+          ctx.beginPath();
+          ctx.moveTo(marginLeft - 4, yPos);
+          ctx.lineTo(marginLeft, yPos);
+          ctx.stroke();
+          ctx.textAlign = 'right';
+          ctx.fillText(j.toString(), marginLeft - 6, yPos + 3);
+        }
+        // Plot points
+        data.forEach(pt => {
+          const xPos = marginLeft + (pt.x - xMin) * (w - marginLeft - marginRight) / (xMax - xMin);
+          const yPos = h - marginBottom - (pt.y - yMin) * (h - marginTop - marginBottom) / (yMax - yMin);
+          // draw circle
+          ctx.beginPath();
+          ctx.arc(xPos, yPos, 3, 0, Math.PI * 2);
+          ctx.fillStyle = '#1a73e8';
+          ctx.fill();
+          // label near point
+          ctx.fillStyle = '#333';
+          ctx.textAlign = 'left';
+          ctx.fillText(pt.label, xPos + 5, yPos - 2);
+        });
+      }
+      /**
+       * Draw a bar chart for overall risk distribution. riskCounts is an object with keys
+       * Low, Medium, High, Critical. Bars are coloured accordingly.
+       */
+      function drawBar(canvas, riskCounts) {
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0,0,w,h);
+        // Chart area
+        const marginLeft = 40;
+        const marginBottom = 40;
+        const marginTop = 20;
+        const marginRight = 20;
+        ctx.font = '10px sans-serif';
+        // Determine max
+        const categories = ['Low','Medium','High','Critical'];
+        const colours = {
+          Low: '#d7e7d3',
+          Medium: '#fff5d6',
+          High: '#f8d7da',
+          Critical: '#e5b7b9'
+        };
+        const maxVal = Math.max(...categories.map(c => riskCounts[c] || 0));
+        // Draw axes
+        ctx.beginPath();
+        ctx.moveTo(marginLeft, h - marginBottom);
+        ctx.lineTo(w - marginRight, h - marginBottom);
+        ctx.moveTo(marginLeft, h - marginBottom);
+        ctx.lineTo(marginLeft, marginTop);
+        ctx.strokeStyle = '#333';
+        ctx.stroke();
+        // Y ticks: show integer ticks up to max
+        const yTickCount = Math.min(maxVal, 5);
+        const yStep = maxVal ? Math.ceil(maxVal / yTickCount) : 1;
+        for (let i = 0; i <= yTickCount; i++) {
+          const val = i * yStep;
+          const yPos = h - marginBottom - (val / (yTickCount * yStep)) * (h - marginTop - marginBottom);
+          ctx.beginPath();
+          ctx.moveTo(marginLeft - 3, yPos);
+          ctx.lineTo(marginLeft, yPos);
+          ctx.stroke();
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#333';
+          ctx.fillText(val.toString(), marginLeft - 6, yPos + 3);
+        }
+        // Bars
+        const barWidth = (w - marginLeft - marginRight) / categories.length * 0.6;
+        categories.forEach((cat, idx) => {
+          const val = riskCounts[cat] || 0;
+          const barHeight = maxVal ? (val / (yTickCount * yStep)) * (h - marginTop - marginBottom) * (yTickCount / (yTickCount)) : 1;
+          const xPos = marginLeft + (idx + 0.2) * ((w - marginLeft - marginRight) / categories.length);
+          const yPos = h - marginBottom - barHeight;
+          ctx.fillStyle = colours[cat];
+          ctx.fillRect(xPos, yPos, barWidth, barHeight);
+          ctx.fillStyle = '#333';
+          ctx.textAlign = 'center';
+          ctx.fillText(cat, xPos + barWidth/2, h - marginBottom + 12);
+          ctx.fillText(val.toString(), xPos + barWidth/2, yPos - 4);
+        });
+      }
+      // Toggle summary button
+      const btnToggle = document.getElementById('toggleSummary');
+      btnToggle.addEventListener('click', () => {
+        const summary = document.getElementById('summaryView');
+        const dataView = document.getElementById('dataView');
+        // Toggle the visibility of the summary and data views. Store the
+        // visibility state so it can be restored when switching plants.
+        if (summary.classList.contains('hidden')) {
+          // Show summary
+          generateSummary();
+          summary.classList.remove('hidden');
+          dataView.classList.add('hidden');
+          btnToggle.textContent = 'Show Full Data';
+          summaryVisible = true;
+          // Hide Manage Roles button while in summary view
+          const mBtn = document.getElementById('manageRolesBtn');
+          if (mBtn) mBtn.style.display = 'none';
+        } else {
+          // Show full data
+          summary.classList.add('hidden');
+          dataView.classList.remove('hidden');
+          btnToggle.textContent = 'Show Summary';
+          summaryVisible = false;
+          // Restore Manage Roles button when leaving summary view
+          const mBtn = document.getElementById('manageRolesBtn');
+          if (mBtn) mBtn.style.display = '';
+        }
+      });
+      // Download CSV
+      function downloadCSV() {
+        // Check if there is data to export; if no rows exist, prompt the user to start an assessment
+        if (!rows || rows.length === 0) {
+          alert('No assessment data to export yet. Start an assessment and input some data before downloading.');
+          return;
+        }
+        // Warn about sensitive data before continuing
+        const proceed = confirm(
+          'The CSV file may contain sensitive personal or HR‑related data.\n\n' +
+          'Good practice:\n' +
+          '• Open it in a spreadsheet and set a password.\n' +
+          '• Store it securely (for example in an encrypted or password‑protected folder).\n' +
+          '• Delete or relocate the unprotected CSV once you no longer need it.\n\n' +
+          'Do you want to continue and download the CSV?'
+        );
+        if (!proceed) {
+          return;
+        }
+        const mill = document.getElementById('inputMill').value || '';
+        // Removed username field; adjust CSV header accordingly
+        // Export detailed capability dimensions so that consolidation can
+        // correctly average each sub capability.  Including individual
+        // capability scores (technical knowledge, experience, crisis
+        // management, leadership/communication, safety) ensures that
+        // downstream merging reflects the full detail of each assessment.
+        const header = [
+          'Department','Cluster','Role Area','Criticality',
+          'Technical Knowledge','Experience','Crisis Management','Leadership/Communication','Safety',
+          'Capability (avg)','Retention Risk','Overall Risk',
+          'Capability Comment','Retention Comment','Comments',
+          'Preferred Method','Gap Method Comment','Mill'
+        ];
+        // Before exporting values to CSV we need to sanitise any fields that
+        // may already include quotes from a prior import.  Some CSV tools
+        // automatically wrap fields containing commas or quotes in a pair
+        // of double quotes and escape internal quotes by doubling them.
+        // When our parser reads such values it preserves the quotes, so
+        // comments like "Very capable..." may actually be stored as
+        // '"Very capable..."'.  If we call escapeCsv on such a string
+        // without first removing the outer quotes, we end up adding an
+        // additional layer of quoting which can cause the entire row to
+        // start with an extra double quote.  The following helper will
+        // strip a single pair of surrounding quotes and unescape doubled
+        // quotes if present.  It intentionally does not strip nested
+        // quotes in the middle of the string so legitimate quoted phrases
+        // (e.g. in free-form comments) are preserved.
+        function sanitiseValue(val) {
+          if (val === null || val === undefined) return '';
+          let str = String(val).trim();
+          // If the string is wrapped in a single pair of quotes, remove them
+          // and unescape any doubled quotes inside.  Only do this if both
+          // the first and last characters are quotes and the string
+          // contains at least one additional quote or comma inside, which
+          // indicates that the outer quotes were added for CSV encoding.
+          if (str.length > 1 && str.startsWith('"') && str.endsWith('"')) {
+            // Remove the outer quotes
+            str = str.slice(1, -1);
+            // Unescape doubled quotes
+            str = str.replace(/""/g, '"');
+          }
+          return str;
+        }
+        // Helper to escape a value for CSV.  If a field contains a comma,
+        // newline or double quote, wrap it in quotes and escape existing
+        // quotes by doubling them.  Null or undefined values become an
+        // empty string.  This ensures that role areas containing commas
+        // (e.g. "Production / Area Manager – Paper Machine, Finishing & Converting")
+        // are safely exported without shifting columns.  The pipe (|)
+        // separators remain as-is; they will be converted back to newlines
+        // when processing uploaded CSVs.  Before escaping we sanitise the
+        // value to strip any prior CSV quoting left over from imported data.
+        function escapeCsv(val) {
+          if (val === null || val === undefined) return '';
+          // First sanitise the value to remove any surrounding quotes that
+          // may already exist due to previous CSV imports.
+          let str = sanitiseValue(val);
+          // Replace any CR/LF with pipe separators for multiline fields.
+          // These replacements are handled for comment fields separately
+          // before this helper is invoked.
+          if (str.includes('\n') || str.includes('\r')) {
+            str = str.replace(/\r?\n/g, ' | ');
+          }
+          // If the value contains a comma or a quote, wrap it in quotes and
+          // escape internal quotes by doubling them.  This protects
+          // multi-word fields and ensures the CSV columns remain aligned.
+          if (str.includes(',') || str.includes('"') ) {
+            str = '"' + str.replace(/"/g, '""') + '"';
+          }
+          return str;
+        }
+        const lines = [];
+        lines.push(header.join(','));
+        rows.forEach(r => {
+          const crit = r.criticality != null ? r.criticality : '';
+          const capTech = r.capTech != null ? r.capTech : '';
+          const capExp  = r.capExperience != null ? r.capExperience : '';
+          const capCri  = r.capCrisis != null ? r.capCrisis : '';
+          const capLead = r.capLeadComm != null ? r.capLeadComm : '';
+          const capSafe = r.capSafety != null ? r.capSafety : '';
+          const capAvg = r.capabilityAvg != null ? r.capabilityAvg.toFixed(1) : '';
+          const ret = r.retentionRisk || '';
+          const overall = r.overallRisk || '';
+          // Pre-sanitise comment fields: replace newline with pipe separators.
+          const capCom = (r.capabilityComment || '').replace(/\r?\n/g, ' | ');
+          const retCom = (r.retentionComment || '').replace(/\r?\n/g, ' | ');
+          // Replace both LF and CRLF with pipe separators in the combined comments.
+          // Using \r?\n ensures both Windows (\r\n) and Unix (\n) newlines are
+          // converted consistently.  Without handling carriage returns, stray
+          // \r characters can lead to malformed CSV rows when opened in other tools.
+          const commentsCombined = displayComments(r).replace(/\r?\n/g, ' | ');
+          const pref = r.preferredMethod || '';
+          const gap = (r.gapMethodComment || '').replace(/\r?\n/g, ' | ');
+          const values = [
+            escapeCsv(r.department || ''),
+            escapeCsv(r.cluster || ''),
+            escapeCsv(r.roleArea || ''),
+            escapeCsv(crit),
+            escapeCsv(capTech),
+            escapeCsv(capExp),
+            escapeCsv(capCri),
+            escapeCsv(capLead),
+            escapeCsv(capSafe),
+            escapeCsv(capAvg),
+            escapeCsv(ret),
+            escapeCsv(overall),
+            escapeCsv(capCom),
+            escapeCsv(retCom),
+            escapeCsv(commentsCombined || ''),
+            escapeCsv(pref),
+            escapeCsv(gap || ''),
+            escapeCsv(mill)
+          ];
+          lines.push(values.join(','));
+        });
+        const csvContent = '\uFEFF' + lines.join('\n');
+        const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
+        const date = new Date();
+        const pad = n => n.toString().padStart(2,'0');
+        // Update output filename to reflect paper mill
+        // Use a more generic filename for the unified plant assessment
+        const filename = `plant-skills_${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}_${pad(date.getHours())}${pad(date.getMinutes())}.csv`;
+        if (navigator.msSaveBlob) { // IE 10+
+          navigator.msSaveBlob(blob, filename);
+        } else {
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      }
+
+      // Save the current state of the application as a downloadable HTML file.
+      // This function encodes the current data for all available sites
+      // into base64 strings, injects them into copies of the default data
+      // scripts, updates the storage key prefixes to a unique timestamped
+      // version to avoid conflicts with other pages, and triggers a file
+      // download. The resulting file contains all edits made up to the
+      // moment of saving and will restore them when opened.
+      function saveCurrentVersion() {
+        try {
+          // Clone defaults and apply the current site's rows into its array
+          const allDefaults = {};
+          siteNames.forEach(name => {
+            allDefaults[name] = defaultData[name].map(r => ({...r}));
+          });
+          if (currentSite && allDefaults[currentSite]) {
+            for (let i = 0; i < rows.length; i++) {
+              allDefaults[currentSite][i] = {...rows[i]};
+            }
+          }
+          // Base64 encode once for all sites. Use encodeURIComponent to properly handle Unicode.
+          // Include the lock state in the exported data.  Persist structureLocked under a 'lock' key.
+          const exportObj = Object.assign({}, allDefaults);
+          exportObj.lock = { structureLocked: structureLocked };
+          // Persist edited role definitions in the export so tooltips are preserved
+          exportObj.definitions = roleDefinitions;
+          const jsonStr = JSON.stringify(exportObj);
+          const allB64 = btoa(unescape(encodeURIComponent(jsonStr)));
+          // Capture the current HTML
+          let html = document.documentElement.outerHTML;
+          // Inject or replace a <script id="site-defaults"> block with the base64 payload.
+          if (/<script[^>]+id="site-defaults"[^>]*>/.test(html)) {
+            html = html.replace(/(<script[^>]+id="site-defaults"[^>]*>)([\s\S]*?)(<\/script>)/,
+                                `$1\n  ${allB64}\n$3`);
+          } else {
+            // If no site-defaults script exists, insert one just before </body>
+            html = html.replace(/<\/body>/,
+              `<script id="site-defaults" type="application/json">\n  ${allB64}\n<\/script>\n</body>`);
+          }
+          // Generate a unique timestamp and update storage key prefixes
+          const now = new Date();
+          const timestamp = now.toISOString().replace(/[:T.-]/g, '').slice(0, 14);
+          const storagePrefix = 'pulp_skills_data_20250825201950_20250910150825_' + timestamp + '_';
+          html = html.replace(/pulp_skills_data_20250825201950_20250910150825_/g, storagePrefix);
+          // Construct file name
+          const fileName = `paper_mill_skills_${currentSite}_${timestamp}.html`;
+          // Create blob and initiate download
+          const blob = new Blob([html], { type: 'text/html' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        } catch (err) {
+          alert('Error saving version: ' + err.message);
+        }
+      }
+      // The downloadCsv button was removed from the assessment view,
+      // so we no longer attach a handler here. CSV exporting is only
+      // available on the welcome page.
+
+      /*
+       * Consolidation view support
+       *
+       * The following functions enable uploading multiple CSV responses,
+       * averaging their numeric scores, concatenating comments, and
+       * optionally updating the main assessment data with the results. A
+       * separate view (consolidationView) is defined in the HTML to host
+       * the upload controls and the consolidated table. The navigation bar
+       * remains visible when scrolling to mirror the behaviour of the main
+       * worksheet.
+       */
+
+      // Show the consolidation view and hide the start and site views
+      window.showConsolidation = function() {
+        // If editing, commit any changes first
+        if (typeof commitEditing === 'function') {
+          commitEditing();
+        }
+        const startDiv = document.getElementById('startView');
+        const siteDiv = document.getElementById('siteContent');
+        const consDiv = document.getElementById('consolidationView');
+        if (startDiv) startDiv.style.display = 'none';
+        if (siteDiv) siteDiv.style.display = 'none';
+        if (consDiv) consDiv.style.display = '';
+      };
+
+      // Start the assessment by capturing the user's name and plant name.
+      // The plant name entered on the start page is used to populate the mill
+      // field on the worksheet. After setting the name and plant, the
+      // unified "Plant" site is loaded. This function is called by the
+      // Start button on the welcome page.
+      window.startAssessment = function() {
+        // Capture entered values
+        const userNameInput = document.getElementById('startUserName');
+        const plantNameInput = document.getElementById('startPlantName');
+        const userName = userNameInput ? userNameInput.value.trim() : '';
+        const plantName = plantNameInput ? plantNameInput.value.trim() : '';
+        // Require both the user's name and the plant name.  If either field
+        // is empty, alert the user and do not proceed.  This prevents the
+        // assessment from loading without the mandatory context requested.
+        if (!userName || !plantName) {
+          alert('Please enter your name and plant name before starting the assessment.');
+          return;
+        }
+        // Load the single site named "Plant"; this will hide the start view and show the table.
+        loadSite('Plant');
+        // After the site loads, update the mill field.  Updating after the call
+        // ensures that any default population performed by loadSite is
+        // overwritten by the user-provided name.
+        const millInputEl = document.getElementById('inputMill');
+        if (millInputEl) {
+          millInputEl.value = plantName;
+        }
+      };
+
+      // Trigger the hidden file input when the Upload button is clicked
+      const uploadBtn = document.getElementById('uploadBtn');
+      if (uploadBtn) {
+        uploadBtn.addEventListener('click', function() {
+          const inp = document.getElementById('uploadInput');
+          if (inp) inp.click();
+        });
+      }
+      // Listen for file selections on the hidden input
+      let selectedFiles = [];
+      const uploadInputEl = document.getElementById('uploadInput');
+      if (uploadInputEl) {
+        uploadInputEl.addEventListener('change', function(e) {
+          const files = Array.from(e.target.files || []);
+          if (!selectedFiles) selectedFiles = [];
+          // Append all selected files to the list without deduplication.  Different
+          // respondents may produce files with identical names or timestamps;
+          // treating them as separate inputs ensures that all responses are
+          // included.  After processing, the file input value is reset so that
+          // the same file can be selected again if needed.
+          files.forEach(file => {
+            selectedFiles.push(file);
+          });
+          // Clear previous consolidated output when new files are selected
+          const out = document.getElementById('consolidatedOutput');
+          if (out) out.innerHTML = '';
+          // Reset the file input value so that selecting the same file again
+          // will trigger a change event.
+          e.target.value = '';
+        });
+      }
+
+      // Helper: split a CSV line on commas, respecting quoted fields
+      function splitCsvLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          const nextCh = i + 1 < line.length ? line[i + 1] : '';
+          
+          if (ch === '"') {
+            if (inQuotes && nextCh === '"') {
+              // Escaped quote within quoted field
+              current += '"';
+              i++; // Skip next quote
+            } else {
+              // Toggle quote mode
+              inQuotes = !inQuotes;
+            }
+          } else if (ch === ',' && !inQuotes) {
+            result.push(current);
+            current = '';
+          } else {
+            current += ch;
+          }
+        }
+        result.push(current);
+        return result;
+      }
+
+      // Parse CSV content into an array of objects keyed by header names
+      function parseCsv(content) {
+        // Don't split by newlines first - parse the whole content as CSV
+        const rows = [];
+        let currentRow = '';
+        let inQuotes = false;
+        
+        // Parse character by character to handle quoted fields with newlines
+        for (let i = 0; i < content.length; i++) {
+          const ch = content[i];
+          const nextCh = i + 1 < content.length ? content[i + 1] : '';
+          
+          if (ch === '"') {
+            if (inQuotes && nextCh === '"') {
+              // Escaped quote
+              currentRow += '""';
+              i++;
+            } else {
+              // Toggle quote mode
+              inQuotes = !inQuotes;
+              currentRow += ch;
+            }
+          } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+            // End of row (only if not in quotes)
+            if (ch === '\r' && nextCh === '\n') {
+              i++; // Skip LF in CRLF
+            }
+            if (currentRow.trim()) {
+              rows.push(currentRow);
+            }
+            currentRow = '';
+          } else {
+            currentRow += ch;
+          }
+        }
+        
+        // Don't forget last row
+        if (currentRow.trim()) {
+          rows.push(currentRow);
+        }
+        
+        if (rows.length === 0) return [];
+        
+        // Parse header
+        const header = splitCsvLine(rows[0]).map(h => h.trim());
+        const rowsList = [];
+        
+        // Parse data rows
+        for (let i = 1; i < rows.length; i++) {
+          let rowStr = rows[i];
+          // Some rows exported from the tool (or edited in other tools) may be wrapped
+          // in an extra pair of quotes when the first two columns are empty and
+          // the comments contain quotes.  For example:
+          // ",,Supervisor (Shift/Area),3,3,...,".  In these cases, remove
+          // the leading quote and any trailing quote so the split logic works
+          // correctly.  Only apply this when the row starts with '"' followed
+          // by a comma, indicating an empty Department field preceded by an
+          // extraneous quote.
+          if (rowStr && rowStr.startsWith('",')) {
+            // Drop the first character (the extraneous quote)
+            rowStr = rowStr.substring(1);
+            // If the row ends with an unescaped quote, drop it as well
+            if (rowStr.endsWith('"')) {
+              rowStr = rowStr.substring(0, rowStr.length - 1);
+            }
+          }
+          const vals = splitCsvLine(rowStr);
+          const obj = {};
+          for (let j = 0; j < header.length; j++) {
+            obj[header[j]] = vals[j] !== undefined ? vals[j] : '';
+          }
+          rowsList.push(obj);
+        }
+        
+        return rowsList;
+      }
+
+      // Compute averages and combine comments across all selected files
+      function processFiles() {
+        if (!selectedFiles || selectedFiles.length === 0) {
+          alert('Please select one or more CSV files to process.');
+          return;
+        }
+        const promises = selectedFiles.map(file => {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+              try {
+                const rowsList = parseCsv(evt.target.result);
+                resolve(rowsList);
+              } catch (err) {
+                reject(err);
+              }
+            };
+            reader.onerror = function() {
+              reject(reader.error);
+            };
+            reader.readAsText(file);
+          });
+        });
+        Promise.all(promises).then(allData => {
+          // Aggregate by role area
+          const agg = {};
+          allData.forEach(dataRows => {
+            dataRows.forEach(r => {
+              // Determine the role/role area field name
+              const role = r['Role Area'] || r['Role'] || r['roleArea'] || r['RoleArea'] || '';
+              if (!role) return;
+              if (!agg[role]) {
+                // Initialise aggregation object with sums and counts for each metric.  Missing values will be
+                // ignored by incrementing the corresponding count only when a numeric value is present.
+                agg[role] = {
+                  count: 0,
+                  roleArea: role,
+                  // criticality
+                  critSum: 0,
+                  critCount: 0,
+                  // overall capability average
+                  capSum: 0,
+                  capCount: 0,
+                  // retention risk
+                  retSum: 0,
+                  retCount: 0,
+                  // sub‑capability sums and counts
+                  capTechSum: 0,
+                  capTechCount: 0,
+                  capExperienceSum: 0,
+                  capExperienceCount: 0,
+                  capCrisisSum: 0,
+                  capCrisisCount: 0,
+                  capLeadCommSum: 0,
+                  capLeadCommCount: 0,
+                  capSafetySum: 0,
+                  capSafetyCount: 0,
+                  capComments: [],
+                  retComments: [],
+                  extraComments: []
+                };
+              }
+              const entry = agg[role];
+              // Count each response as one entry.  We still track the total number of rows for reference.
+              entry.count++;
+              // Criticality: only accumulate and count if a valid number is provided
+              {
+                const valRaw = r['Criticality'];
+                const critVal = valRaw === undefined || valRaw === null || valRaw.trim() === '' ? NaN : parseFloat(valRaw);
+                if (!isNaN(critVal)) {
+                  entry.critSum += critVal;
+                  entry.critCount++;
+                }
+              }
+              // Capability average: accumulate only when provided
+              {
+                const capRaw = r['Capability (avg)'] || r['Capability Average'] || r['Capability'];
+                const capVal = capRaw === undefined || capRaw === null || capRaw.trim() === '' ? NaN : parseFloat(capRaw);
+                if (!isNaN(capVal)) {
+                  entry.capSum += capVal;
+                  entry.capCount++;
+                }
+              }
+              // Sub capability dimensions.  Accept multiple possible column names.  Accumulate sums and counts only when values are present.
+              {
+                const techRaw = r['Technical Knowledge'] || r['Technical knowledge'] || r['capTech'];
+                const techVal = techRaw === undefined || techRaw === null || techRaw.trim() === '' ? NaN : parseFloat(techRaw);
+                if (!isNaN(techVal)) {
+                  entry.capTechSum += techVal;
+                  entry.capTechCount++;
+                }
+              }
+              {
+                const expRaw = r['Experience'] || r['capExperience'];
+                const expVal = expRaw === undefined || expRaw === null || expRaw.trim() === '' ? NaN : parseFloat(expRaw);
+                if (!isNaN(expVal)) {
+                  entry.capExperienceSum += expVal;
+                  entry.capExperienceCount++;
+                }
+              }
+              {
+                const criRaw = r['Crisis Management'] || r['capCrisis'];
+                const criVal = criRaw === undefined || criRaw === null || criRaw.trim() === '' ? NaN : parseFloat(criRaw);
+                if (!isNaN(criVal)) {
+                  entry.capCrisisSum += criVal;
+                  entry.capCrisisCount++;
+                }
+              }
+              {
+                const leadRaw = r['Leadership/Communication'] || r['Leadership / Communication'] || r['capLeadComm'];
+                const leadVal = leadRaw === undefined || leadRaw === null || leadRaw.trim() === '' ? NaN : parseFloat(leadRaw);
+                if (!isNaN(leadVal)) {
+                  entry.capLeadCommSum += leadVal;
+                  entry.capLeadCommCount++;
+                }
+              }
+              {
+                const safetyRaw = r['Safety'] || r['capSafety'];
+                const safetyVal = safetyRaw === undefined || safetyRaw === null || safetyRaw.trim() === '' ? NaN : parseFloat(safetyRaw);
+                if (!isNaN(safetyVal)) {
+                  entry.capSafetySum += safetyVal;
+                  entry.capSafetyCount++;
+                }
+              }
+              // Retention risk numeric mapping.  Use uppercase for letters.  Only include in sums if a letter or valid string is provided.
+              {
+                const ret = (r['Retention Risk'] || r['Retention'] || '').trim();
+                let retNum = 0;
+                if (/^[lL]/.test(ret) || ret.toLowerCase() === 'low') retNum = 1;
+                else if (/^[mM]/.test(ret) || ret.toLowerCase() === 'medium') retNum = 2;
+                else if (/^[hH]/.test(ret) || ret.toLowerCase() === 'high') retNum = 3;
+                if (retNum > 0) {
+                  entry.retSum += retNum;
+                  entry.retCount++;
+                }
+              }
+              // Collect comments.  Support consolidated "Comments" field and separate fields.
+              let rawComments = (r['Comments'] || r['Comment'] || '').trim();
+              if (rawComments) {
+                // Convert pipe separators to real newlines. This prevents the '|' character
+                // from appearing in consolidated output while still allowing CSV to carry
+                // multi-line comments.
+                rawComments = rawComments.replace(/\s*\|\s*/g, '\n');
+                // Attempt to parse combined comments with headings.  Allow case-insensitive search.
+                const lower = rawComments.toLowerCase();
+                const capIdx = lower.indexOf('capability:');
+                const retIdx = lower.indexOf('retention:');
+                const addIdx = lower.indexOf('additional:');
+                if (capIdx >= 0 && retIdx >= 0) {
+                  const capPart = rawComments.substring(capIdx + 'Capability:'.length, retIdx).trim();
+                  let retPart = '';
+                  let addPart = '';
+                  if (addIdx >= 0) {
+                    retPart = rawComments.substring(retIdx + 'Retention:'.length, addIdx).trim();
+                    addPart = rawComments.substring(addIdx + 'Additional:'.length).trim();
+                  } else {
+                    retPart = rawComments.substring(retIdx + 'Retention:'.length).trim();
+                  }
+                  if (capPart) entry.capComments.push(capPart);
+                  if (retPart) entry.retComments.push(retPart);
+                  if (addPart) entry.extraComments.push(addPart);
+                } else {
+                  // Without headings, treat the field as additional comments
+                  entry.extraComments.push(rawComments);
+                }
+              }
+              // Separate capability and retention comment fields.  Convert pipe to newline.
+              const capComField = ((r['Capability Comment'] || r['CapabilityComment'] || r['capabilityComment'] || '').replace(/\s*\|\s*/g,'\n')).trim();
+              if (capComField) {
+                entry.capComments.push(capComField);
+              }
+              // Retrieve retention comments from dedicated columns.  Support
+              // multiple possible header names (singular or plural with/without
+              // spaces/camelCase) and convert pipe separators back to
+              // newlines.  Aggregate them into the retention comments list.
+              const retComFieldRaw = (
+                r['Retention Comment'] ||
+                r['RetentionComment'] ||
+                r['retentionComment'] ||
+                r['Retention Comments'] ||
+                r['RetentionComments'] ||
+                r['retentionComments'] ||
+                ''
+              );
+              const retComField = retComFieldRaw.replace(/\s*\|\s*/g, '\n').trim();
+              if (retComField) {
+                entry.retComments.push(retComField);
+              }
+            });
+          });
+          // Reset consolidatedData and build new list
+          consolidatedData = [];
+          Object.values(agg).forEach(item => {
+            // Compute averages using the specific count of entries for each metric.
+            // Do not use the overall item.count for these values because missing
+            // values should be disregarded rather than averaged with zeros.
+            const avgCrit = item.critCount ? item.critSum / item.critCount : null;
+            // Compute averages for each capability dimension.  If no entries exist,
+            // leave the value null so the downstream logic can handle missing data.
+            // Compute raw averages for each capability dimension.  Apply the
+            // roundDownHalf function to ensure .5 values are floored.  Leave
+            // values null if no entries exist so downstream logic can detect
+            // missing data.
+            // Average each capability sub-dimension based on its specific count.
+            let avgTech  = item.capTechCount    ? (item.capTechSum      / item.capTechCount)    : null;
+            let avgExp   = item.capExperienceCount ? (item.capExperienceSum / item.capExperienceCount) : null;
+            let avgCri   = item.capCrisisCount  ? (item.capCrisisSum    / item.capCrisisCount)  : null;
+            let avgLead  = item.capLeadCommCount? (item.capLeadCommSum  / item.capLeadCommCount): null;
+            let avgSafe  = item.capSafetyCount  ? (item.capSafetySum    / item.capSafetyCount)  : null;
+            // Convert each capability dimension to the nearest whole number,
+            // rounding .5 values down.  This ensures that sub‑dimension averages
+            // map cleanly onto the discrete 0–3 scale used in the assessment.
+            avgTech = avgTech != null ? roundNearestWholeHalfDown(avgTech) : null;
+            avgExp  = avgExp  != null ? roundNearestWholeHalfDown(avgExp ) : null;
+            avgCri  = avgCri  != null ? roundNearestWholeHalfDown(avgCri ) : null;
+            avgLead = avgLead != null ? roundNearestWholeHalfDown(avgLead) : null;
+            avgSafe = avgSafe != null ? roundNearestWholeHalfDown(avgSafe) : null;
+            // Recompute overall capability average from sub dimensions when at least one dimension is provided.
+            let avgCap = null;
+            const subVals = [avgTech, avgExp, avgCri, avgLead, avgSafe].filter(v => v != null);
+            if (subVals.length > 0) {
+              const sum = subVals.reduce((a,b) => a + b, 0);
+              avgCap = sum / subVals.length;
+            } else {
+              // Fallback to the provided capability average if sub dimensions are missing.
+              // Use the specific capCount instead of overall count to ignore blanks.
+              avgCap = item.capCount ? item.capSum / item.capCount : null;
+            }
+            // Floor .5 values for the overall capability average as well
+            if (avgCap != null) {
+              avgCap = roundDownHalf(avgCap);
+            }
+            // Average retention risk only over provided retention entries.  If no retention
+            // data was provided, treat the average as 0 so the risk letter will be blank.
+            const avgRet = item.retCount ? item.retSum / item.retCount : 0;
+            let retLetter = '';
+            const roundRet = Math.round(avgRet);
+            if (roundRet === 1) retLetter = 'L';
+            else if (roundRet === 2) retLetter = 'M';
+            else if (roundRet === 3) retLetter = 'H';
+            // Deduplicate comments
+            const uniq = arr => {
+              // Better deduplication that handles multiline entries
+              const seen = new Set();
+              const unique = [];
+              arr.filter(s => s).forEach(comment => {
+                // Normalize whitespace for comparison
+                const normalized = comment.trim().replace(/\s+/g, ' ');
+                if (!seen.has(normalized)) {
+                  seen.add(normalized);
+                  unique.push(comment); // Keep original formatting
+                }
+              });
+              return unique;
+            };
+            // Deduplicate capability and retention comments.  Join them with
+            // newlines to preserve separate entries.  Additional/general
+            // comments are intentionally discarded here to simplify
+            // consolidation; any remarks not explicitly associated with
+            // capability or retention will not appear in the consolidated
+            // dataset.  This addresses user feedback about unexpected
+            // "Additional Comments" showing up in consolidated results.
+            const capCom = uniq(item.capComments).join('\n');
+            const retCom = uniq(item.retComments).join('\n');
+            consolidatedData.push({
+              roleArea: item.roleArea,
+              criticality: avgCrit != null ? parseFloat(avgCrit.toFixed(1)) : null,
+              // store each dimension average; round to one decimal if present
+              capTech: avgTech != null ? parseFloat(avgTech.toFixed(1)) : null,
+              capExperience: avgExp != null ? parseFloat(avgExp.toFixed(1)) : null,
+              capCrisis: avgCri != null ? parseFloat(avgCri.toFixed(1)) : null,
+              capLeadComm: avgLead != null ? parseFloat(avgLead.toFixed(1)) : null,
+              capSafety: avgSafe != null ? parseFloat(avgSafe.toFixed(1)) : null,
+              capabilityAvg: avgCap != null ? parseFloat(avgCap.toFixed(1)) : null,
+              retentionRisk: retLetter,
+              capabilityComment: capCom,
+              retentionComment: retCom
+            });
+          });
+          renderConsolidatedTable();
+        }).catch(err => {
+          console.error('Error processing files', err);
+          alert('Error processing files: ' + err.message);
+        });
+      }
+
+      // Clear any selected files and consolidated output.  This allows the user to
+      // reset the consolidation view without reloading the page.  It also
+      // empties the file input so the same file can be selected again if needed.
+      function clearConsolidated() {
+        selectedFiles = [];
+        consolidatedData = [];
+        const inputEl = document.getElementById('uploadInput');
+        if (inputEl) {
+          inputEl.value = '';
+        }
+        const out = document.getElementById('consolidatedOutput');
+        if (out) out.innerHTML = '';
+      }
+
+      // Render the consolidated data into an HTML table within the consolidation view
+      function renderConsolidatedTable() {
+        const outEl = document.getElementById('consolidatedOutput');
+        if (!outEl) return;
+        if (!consolidatedData || !consolidatedData.length) {
+          outEl.innerHTML = '<p>No data to display.</p>';
+          return;
+        }
+        let html = '<table style="width:100%; border-collapse:collapse; font-size:0.8rem;">';
+        html += '<thead><tr>' +
+          '<th style="border:1px solid #ccc; padding:4px;">Role Area</th>' +
+          '<th style="border:1px solid #ccc; padding:4px;">Criticality</th>' +
+          '<th style="border:1px solid #ccc; padding:4px;">Technical knowledge</th>' +
+          '<th style="border:1px solid #ccc; padding:4px;">Experience</th>' +
+          '<th style="border:1px solid #ccc; padding:4px;">Crisis management</th>' +
+          '<th style="border:1px solid #ccc; padding:4px;">Leadership &amp; Communication</th>' +
+          '<th style="border:1px solid #ccc; padding:4px;">Safety mindset</th>' +
+          '<th style="border:1px solid #ccc; padding:4px;">Capability Avg</th>' +
+          '<th style="border:1px solid #ccc; padding:4px;">Retention Risk</th>' +
+          '<th style="border:1px solid #ccc; padding:4px;">Capability Comments</th>' +
+          '<th style="border:1px solid #ccc; padding:4px;">Retention Comments</th>' +
+          '</tr></thead>';
+        html += '<tbody>';
+        consolidatedData.forEach(r => {
+          // Determine RAG classes based on average scores and retention risk. Use
+          // bucketCapability for each numeric capability dimension. Null or
+          // missing values result in no class being applied.
+          const critClass = (r.criticality != null ? ('crit-' + Math.round(r.criticality)) : '');
+          const techClass = (r.capTech != null ? ('cap-' + bucketCapability(r.capTech)) : '');
+          const expClass  = (r.capExperience != null ? ('cap-' + bucketCapability(r.capExperience)) : '');
+          const criClass  = (r.capCrisis != null ? ('cap-' + bucketCapability(r.capCrisis)) : '');
+          const leadClass = (r.capLeadComm != null ? ('cap-' + bucketCapability(r.capLeadComm)) : '');
+          const safeClass = (r.capSafety != null ? ('cap-' + bucketCapability(r.capSafety)) : '');
+          const capBucket = (r.capabilityAvg != null ? bucketCapability(r.capabilityAvg) : null);
+          const capClass  = (capBucket != null ? ('cap-' + capBucket) : '');
+          const retVal    = (r.retentionRisk || '').toString().trim();
+          const retClass  = retVal ? ('ret-' + retVal) : '';
+          html += '<tr>' +
+            '<td style="border:1px solid #ccc; padding:4px;">' + (r.roleArea || '') + '</td>' +
+            '<td class="' + critClass + '" style="border:1px solid #ccc; padding:4px; text-align:center;">' + (r.criticality != null ? r.criticality.toFixed(1) : '') + '</td>' +
+            '<td class="' + techClass + '" style="border:1px solid #ccc; padding:4px; text-align:center;">' + (r.capTech != null ? r.capTech.toFixed(1) : '') + '</td>' +
+            '<td class="' + expClass + '" style="border:1px solid #ccc; padding:4px; text-align:center;">' + (r.capExperience != null ? r.capExperience.toFixed(1) : '') + '</td>' +
+            '<td class="' + criClass + '" style="border:1px solid #ccc; padding:4px; text-align:center;">' + (r.capCrisis != null ? r.capCrisis.toFixed(1) : '') + '</td>' +
+            '<td class="' + leadClass + '" style="border:1px solid #ccc; padding:4px; text-align:center;">' + (r.capLeadComm != null ? r.capLeadComm.toFixed(1) : '') + '</td>' +
+            '<td class="' + safeClass + '" style="border:1px solid #ccc; padding:4px; text-align:center;">' + (r.capSafety != null ? r.capSafety.toFixed(1) : '') + '</td>' +
+            '<td class="' + capClass + '" style="border:1px solid #ccc; padding:4px; text-align:center;">' + (r.capabilityAvg != null ? r.capabilityAvg.toFixed(1) : '') + '</td>' +
+            '<td class="' + retClass + '" style="border:1px solid #ccc; padding:4px; text-align:center;">' + (retVal || '') + '</td>' +
+            '<td style="border:1px solid #ccc; padding:4px; white-space:pre-wrap;">' + (r.capabilityComment || '') + '</td>' +
+            '<td style="border:1px solid #ccc; padding:4px; white-space:pre-wrap;">' + (r.retentionComment || '') + '</td>' +
+            '</tr>';
+        });
+        html += '</tbody></table>';
+        outEl.innerHTML = html;
+      }
+
+      // Export the consolidated data to a CSV file
+      function downloadConsolidated() {
+        if (!consolidatedData || !consolidatedData.length) {
+          alert('No consolidated data to download.');
+          return;
+        }
+        // Construct header with each sub-dimension and overall capability average.
+        const header = [
+          'Role Area',
+          'Criticality',
+          'Technical knowledge (avg)',
+          'Experience (avg)',
+          'Crisis management (avg)',
+          'Leadership & Communication (avg)',
+          'Safety mindset (avg)',
+          'Capability (avg)',
+          'Retention Risk',
+          'Capability Comment',
+          'Retention Comment'
+        ];
+        const lines = [];
+        lines.push(header.join(','));
+        consolidatedData.forEach(r => {
+          const values = [
+            r.roleArea || '',
+            r.criticality != null ? r.criticality.toFixed(1) : '',
+            r.capTech != null ? r.capTech.toFixed(1) : '',
+            r.capExperience != null ? r.capExperience.toFixed(1) : '',
+            r.capCrisis != null ? r.capCrisis.toFixed(1) : '',
+            r.capLeadComm != null ? r.capLeadComm.toFixed(1) : '',
+            r.capSafety != null ? r.capSafety.toFixed(1) : '',
+            r.capabilityAvg != null ? r.capabilityAvg.toFixed(1) : '',
+            r.retentionRisk || '',
+            '"' + (r.capabilityComment || '').replace(/"/g, '""') + '"',
+            '"' + (r.retentionComment || '').replace(/"/g, '""') + '"'
+          ];
+          lines.push(values.join(','));
+        });
+        const csvContent = '\uFEFF' + lines.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const now = new Date();
+        const pad = n => n.toString().padStart(2, '0');
+        const filename = 'consolidated_responses_' + now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) + '.csv';
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      // Replace the current data rows with the consolidated dataset and redraw the table
+      function updateToolData() {
+        if (!consolidatedData || !consolidatedData.length) {
+          alert('No consolidated data to update.');
+          return;
+        }
+        // Map consolidated rows back into the format expected by the worksheet
+        rows = consolidatedData.map((r, idx) => {
+          const obj = {
+            department: null,
+            cluster: null,
+            roleArea: r.roleArea,
+            criticality: r.criticality != null ? r.criticality : null,
+            // assign averaged capability dimensions if provided.  Round
+            // each dimension to the nearest whole number (half values
+            // round down) so they map onto the discrete rating scale used
+            // in the worksheet. Without this, fractional values (e.g. 1.2)
+            // appear as dashes when imported.
+            capTech: r.capTech != null ? roundNearestWholeHalfDown(r.capTech) : null,
+            capExperience: r.capExperience != null ? roundNearestWholeHalfDown(r.capExperience) : null,
+            capCrisis: r.capCrisis != null ? roundNearestWholeHalfDown(r.capCrisis) : null,
+            capLeadComm: r.capLeadComm != null ? roundNearestWholeHalfDown(r.capLeadComm) : null,
+            capSafety: r.capSafety != null ? roundNearestWholeHalfDown(r.capSafety) : null,
+            // Convert any pipe separators back to newlines to ensure
+            // multiline comments display correctly in the tool.
+            capabilityComment: (r.capabilityComment || '').replace(/\s*\|\s*/g, '\n'),
+            retentionRisk: r.retentionRisk || '',
+            retentionComment: (r.retentionComment || '').replace(/\s*\|\s*/g, '\n'),
+            // Discard any consolidated general comments.  The tool no longer
+            // stores a separate "Additional Comments" field when updating
+            // from consolidated data.
+            preferredMethod: '-',
+            gapMethodComment: ''
+          };
+          obj.id = idx;
+          // compute capabilityAvg from sub dimensions when available
+          const subVals = [obj.capTech, obj.capExperience, obj.capCrisis, obj.capLeadComm, obj.capSafety].filter(v => v != null);
+          if (subVals.length > 0) {
+            const sum = subVals.reduce((a,b) => a + b, 0);
+            // Compute raw average and floor any half values before rounding to
+            // one decimal place.  Without this adjustment, an exact .5 average
+            // (e.g. 0.5, 1.5, 2.5) would be rendered as a dash when imported
+            // back into the main assessment view.
+            let avg = sum / subVals.length;
+            avg = roundDownHalf(avg);
+            obj.capabilityAvg = parseFloat(avg.toFixed(1));
+          } else {
+            obj.capabilityAvg = (r.capabilityAvg != null ? r.capabilityAvg : null);
+          }
+          obj.capabilityBucket = bucketCapability(obj.capabilityAvg);
+          obj.overallRisk = computeOverallRisk(obj);
+          return obj;
+        });
+        // Persist changes
+        saveData();
+        // Re-render table to reflect new data
+        renderTable();
+        // Force comprehensive color reapplication after consolidation
+        // Use a timeout to ensure DOM is fully updated
+        setTimeout(() => {
+          reapplyAllColors();
+        }, 100);
+        // Return to the site view
+        const consDiv = document.getElementById('consolidationView');
+        const siteDiv = document.getElementById('siteContent');
+        if (consDiv) consDiv.style.display = 'none';
+        if (siteDiv) siteDiv.style.display = '';
+      }
+
+      // Wire up process, download and update buttons on DOM ready
+      document.addEventListener('DOMContentLoaded', function() {
+        const processBtn = document.getElementById('processBtn');
+        if (processBtn) processBtn.addEventListener('click', processFiles);
+        const downloadBtn = document.getElementById('downloadConsolidatedBtn');
+        if (downloadBtn) downloadBtn.addEventListener('click', downloadConsolidated);
+        const updateBtn = document.getElementById('updateToolBtn');
+        if (updateBtn) updateBtn.addEventListener('click', updateToolData);
+        const clearBtn = document.getElementById('clearConsolidatedBtn');
+        if (clearBtn) clearBtn.addEventListener('click', clearConsolidated);
+      });
+      // Print
+      const printBtnEl = document.getElementById('printBtn');
+      if (printBtnEl) {
+        printBtnEl.addEventListener('click', () => {
+          window.print();
+        });
+      }
+      const saveVersionEl = document.getElementById('saveVersion');
+      if (saveVersionEl) {
+        saveVersionEl.addEventListener('click', saveCurrentVersion);
+      }
+
+      // ------------------------ Role Management & Lock Functionality ------------------------
+      // Define a template for new rows with default values: criticality and all capability fields set to 1,
+      // retention risk set to Low ("L"), and empty comments.  This helper ensures new roles start with the same baseline.
+      function defaultRowTemplate(roleName) {
+        return {
+          roleArea: roleName || '',
+          criticality: 1,
+          capTech: 1,
+          capExperience: 1,
+          capCrisis: 1,
+          capLeadComm: 1,
+          capSafety: 1,
+          retentionRisk: 'L',
+          capabilityComment: '',
+          retentionComment: '',
+          comments: '',
+          preferredMethod: '-',
+          gapMethodComment: ''
+        };
+      }
+
+      // Persist and restore lock state using localStorage with a dedicated key
+      const LOCK_KEY = 'plant_skills_lock';
+
+      function loadLock() {
+        try {
+          const val = localStorage.getItem(LOCK_KEY);
+          structureLocked = (val === 'true');
+        } catch (ex) {
+          structureLocked = false;
+        }
+      }
+      function saveLock() {
+        try {
+          localStorage.setItem(LOCK_KEY, structureLocked ? 'true' : 'false');
+        } catch (ex) {}
+      }
+
+      // Update UI elements (manage roles button and toggle) based on lock state
+      function updateLockUI() {
+        const toggleEl = document.getElementById('lockStructureToggle');
+        if (toggleEl) toggleEl.checked = !!structureLocked;
+        const manageBtnEl = document.getElementById('manageRolesBtn');
+        if (manageBtnEl) manageBtnEl.style.display = structureLocked ? 'none' : '';
+      }
+
+      // Show Manage Roles modal, listing all roles with editable names and delete buttons
+      function showManageRolesModal() {
+        if (structureLocked) return;
+        const modal = document.getElementById('manageRolesModal');
+        const listDiv = document.getElementById('rolesList');
+        if (!modal || !listDiv) return;
+        listDiv.innerHTML = '';
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        // Add a Description column so definitions (tooltips) can be edited inline.
+        thead.innerHTML = '<tr><th>Role Name</th><th>Description</th><th>Actions</th></tr>';
+        table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        rows.forEach((r, idx) => {
+          const tr = document.createElement('tr');
+          const tdName = document.createElement('td');
+          const inp = document.createElement('input');
+          inp.value = r.roleArea || '';
+          inp.disabled = structureLocked;
+          inp.addEventListener('change', () => {
+            const newName = inp.value.trim();
+            const oldName = r.roleArea || '';
+            // Avoid empty names
+            if (!newName) return;
+            // When renaming a role, carry over its definition to the new name.
+            if (roleDefinitions.hasOwnProperty(oldName)) {
+              roleDefinitions[newName] = roleDefinitions[oldName];
+              delete roleDefinitions[oldName];
+            } else if (!roleDefinitions.hasOwnProperty(newName)) {
+              // Initialise blank description if no existing definition exists
+              roleDefinitions[newName] = '';
+            }
+            saveDefinitions();
+            r.roleArea = newName;
+            saveData();
+            renderTable();
+            // Reopen modal to reflect updated keys
+            showManageRolesModal();
+          });
+          tdName.appendChild(inp);
+          // Description column for editing tooltip text
+          const tdDesc = document.createElement('td');
+          const descInput = document.createElement('input');
+          descInput.type = 'text';
+          descInput.value = roleDefinitions[r.roleArea] || '';
+          descInput.disabled = structureLocked;
+          descInput.addEventListener('change', () => {
+            roleDefinitions[r.roleArea] = descInput.value;
+            saveDefinitions();
+            // Re-render to update tooltips
+            renderTable();
+          });
+          tdDesc.appendChild(descInput);
+          // Actions column
+          const tdAct = document.createElement('td');
+          const delBtn = document.createElement('button');
+          delBtn.textContent = 'Delete';
+          delBtn.disabled = structureLocked;
+          delBtn.addEventListener('click', () => {
+            if (structureLocked) return;
+            rows.splice(idx, 1);
+            // Remove definition associated with this role
+            if (roleDefinitions.hasOwnProperty(r.roleArea)) {
+              delete roleDefinitions[r.roleArea];
+              saveDefinitions();
+            }
+            // Recompute IDs and derived metrics
+            rows.forEach((row, i) => {
+              row.id = i;
+              row.capabilityAvg = computeCapabilityAvg(row);
+              row.capabilityBucket = bucketCapability(row.capabilityAvg);
+              row.overallRisk = computeOverallRisk(row);
+            });
+            saveData();
+            renderTable();
+            showManageRolesModal();
+          });
+          tdAct.appendChild(delBtn);
+          tr.appendChild(tdName);
+          tr.appendChild(tdDesc);
+          tr.appendChild(tdAct);
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        listDiv.appendChild(table);
+        modal.style.display = 'block';
+      }
+
+      function closeManageRolesModal() {
+        const modal = document.getElementById('manageRolesModal');
+        if (modal) modal.style.display = 'none';
+      }
+
+      // Attach event listeners for Manage Roles and modal controls after DOM is ready
+      document.addEventListener('DOMContentLoaded', function() {
+        // Restore lock state from localStorage or saved defaults
+        loadLock();
+        // Load any persisted role definitions from localStorage
+        loadDefinitions();
+        updateLockUI();
+        // Manage Roles button
+        const manageBtnEl = document.getElementById('manageRolesBtn');
+        if (manageBtnEl) {
+          manageBtnEl.addEventListener('click', function() {
+            if (!structureLocked) {
+              showManageRolesModal();
+            }
+          });
+        }
+        // Add Role button inside modal
+        const addRoleBtnModal = document.getElementById('addRoleBtnModal');
+        if (addRoleBtnModal) {
+          addRoleBtnModal.addEventListener('click', function() {
+            if (structureLocked) return;
+            // Generate a unique default name for new role
+            let baseName = 'New Role';
+            let newName = baseName;
+            let counter = 1;
+            const existingNames = rows.map(r => (r.roleArea || '').toLowerCase());
+            while (existingNames.includes(newName.toLowerCase())) {
+              newName = baseName + ' ' + counter;
+              counter++;
+            }
+            const newRow = defaultRowTemplate(newName);
+            rows.push(newRow);
+            // Initialise blank description for the new role
+            roleDefinitions[newName] = '';
+            saveDefinitions();
+            // Recompute derived fields and assign IDs
+            rows.forEach((row, i) => {
+              row.id = i;
+              row.capabilityAvg = computeCapabilityAvg(row);
+              row.capabilityBucket = bucketCapability(row.capabilityAvg);
+              row.overallRisk = computeOverallRisk(row);
+            });
+            saveData();
+            renderTable();
+            showManageRolesModal();
+          });
+        }
+        // Close modal button
+        const closeModalBtn = document.getElementById('closeRolesModalBtn');
+        if (closeModalBtn) {
+          closeModalBtn.addEventListener('click', function() {
+            closeManageRolesModal();
+          });
+        }
+        // Lock toggle on start page
+        const lockToggle = document.getElementById('lockStructureToggle');
+        if (lockToggle) {
+          lockToggle.addEventListener('change', function() {
+            structureLocked = !!lockToggle.checked;
+            saveLock();
+            updateLockUI();
+          });
+        }
+
+        // ---------------------------------------
+        // Add event listeners for welcome page actions
+        // These buttons live on the welcome page and are only present when no site is selected.
+        const csvStart = document.getElementById('downloadCsvStart');
+        if (csvStart) {
+          csvStart.addEventListener('click', function() {
+            // Use downloadCSV which includes its own data presence and confirmation checks
+            downloadCSV();
+          });
+        }
+        const saveStructBtn = document.getElementById('saveStructureStart');
+        if (saveStructBtn) {
+          saveStructBtn.addEventListener('click', function() {
+            saveStructureVersion();
+          });
+        }
+        const instrBtn = document.getElementById('instructionsBtn');
+        if (instrBtn) {
+          instrBtn.addEventListener('click', function() {
+            const modal = document.getElementById('instructionsModal');
+            if (modal) modal.style.display = 'flex';
+          });
+        }
+        const closeInstrBtn = document.getElementById('closeInstructionsBtn');
+        if (closeInstrBtn) {
+          closeInstrBtn.addEventListener('click', function() {
+            const modal = document.getElementById('instructionsModal');
+            if (modal) modal.style.display = 'none';
+          });
+        }
+      });
+
+    })();
+  </script>
+</body></html>
