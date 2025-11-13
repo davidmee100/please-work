@@ -1155,34 +1155,29 @@
           exportObj.definitions = roleDefinitions;
           const jsonStr = JSON.stringify(exportObj);
           const allB64 = btoa(unescape(encodeURIComponent(jsonStr)));
-          // Remove any existing site-defaults element from the live DOM before exporting.  This ensures
-          // we do not serialize stale defaults or nested tags from previous saves.  Using the DOM to
-          // remove the element is more reliable than string manipulation because it correctly targets
-          // the real <script id="site-defaults"> in the document rather than a similar string inside
-          // this script's own source code.
-          const currentDefaultsEl = document.getElementById('site-defaults');
-          if (currentDefaultsEl) {
-            currentDefaultsEl.parentNode.removeChild(currentDefaultsEl);
+          // Work on a cloned document so we do not mutate the live page.  Using DOM
+          // operations avoids string-based replacements that can accidentally touch
+          // JavaScript source code inside other <script> tags.
+          const exportDoc = document.implementation.createHTMLDocument(document.title);
+          const clonedHtml = document.documentElement.cloneNode(true);
+          exportDoc.replaceChild(clonedHtml, exportDoc.documentElement);
+          const defaultsNodes = exportDoc.querySelectorAll('#site-defaults');
+          let insertParent = exportDoc.body;
+          let insertBefore = null;
+          if (defaultsNodes.length > 0) {
+            const firstNode = defaultsNodes[0];
+            insertParent = firstNode.parentNode || exportDoc.body;
+            insertBefore = firstNode.nextSibling;
+            defaultsNodes.forEach(node => node.parentNode && node.parentNode.removeChild(node));
           }
-          let html = document.documentElement.outerHTML;
-          // Remove any lingering <script id="site-defaults"> blocks that might still be present in the
-          // serialized HTML.  The global flag (g) ensures all occurrences are removed, not just the first.
-          html = html.replace(/<script[^>]+id="site-defaults"[^>]*>[\s\S]*?<\/script>/ig, '');
-          // Insert the freshly generated defaults immediately before the final </body> tag.  We use
-          // lastIndexOf to locate the actual closing </body> in the document rather than the first
-          // occurrence (which can appear in this script).  The injected string does not contain
-          // </body> or </html> to avoid truncating the file.
-          const idxBody = html.lastIndexOf('</body>');
-          if (idxBody !== -1) {
-            // Build the injection string without including a literal closing script tag
-            // in this script source. Splitting the tag prevents the HTML parser from prematurely
-            // ending the surrounding script when this code is loaded. At runtime this
-            // concatenation produces a normal closing script tag in the final HTML.
-            const injOpen = '<script id="site-defaults" type="application/json">\n';
-            const injClose = '<' + '/script>\n';
-            const injection = injOpen + allB64 + '\n' + injClose;
-            html = html.slice(0, idxBody) + injection + html.slice(idxBody);
-          }
+          const defaultsScript = exportDoc.createElement('script');
+          defaultsScript.id = 'site-defaults';
+          defaultsScript.type = 'application/json';
+          defaultsScript.textContent = allB64;
+          insertParent.insertBefore(defaultsScript, insertBefore);
+          const serializer = new XMLSerializer();
+          const docType = document.doctype ? serializer.serializeToString(document.doctype) + '\n' : '<!DOCTYPE html>\n';
+          let html = docType + serializer.serializeToString(exportDoc);
           const now = new Date();
           const timestamp = now.toISOString().replace(/[:T.-]/g, '').slice(0, 14);
           const storagePrefix = 'pulp_skills_data_20250825201950_20250910150825_' + timestamp + '_';
