@@ -1189,8 +1189,29 @@
           exportObj.definitions = roleDefinitions;
           const jsonStr = JSON.stringify(exportObj);
           const allB64 = btoa(unescape(encodeURIComponent(jsonStr)));
-          // Serialise the cloned DOM with a refreshed site-defaults payload.
-          let html = buildExportHtmlWithDefaults(allB64);
+          // Work on a cloned document so we do not mutate the live page.  Using DOM
+          // operations avoids string-based replacements that can accidentally touch
+          // JavaScript source code inside other <script> tags.
+          const exportDoc = document.implementation.createHTMLDocument(document.title);
+          const clonedHtml = document.documentElement.cloneNode(true);
+          exportDoc.replaceChild(clonedHtml, exportDoc.documentElement);
+          const defaultsNodes = exportDoc.querySelectorAll('#site-defaults');
+          let insertParent = exportDoc.body;
+          let insertBefore = null;
+          if (defaultsNodes.length > 0) {
+            const firstNode = defaultsNodes[0];
+            insertParent = firstNode.parentNode || exportDoc.body;
+            insertBefore = firstNode.nextSibling;
+            defaultsNodes.forEach(node => node.parentNode && node.parentNode.removeChild(node));
+          }
+          const defaultsScript = exportDoc.createElement('script');
+          defaultsScript.id = 'site-defaults';
+          defaultsScript.type = 'application/json';
+          defaultsScript.textContent = allB64;
+          insertParent.insertBefore(defaultsScript, insertBefore);
+          const serializer = new XMLSerializer();
+          const docType = document.doctype ? serializer.serializeToString(document.doctype) + '\n' : '<!DOCTYPE html>\n';
+          let html = docType + serializer.serializeToString(exportDoc);
           const now = new Date();
           const timestamp = now.toISOString().replace(/[:T.-]/g, '').slice(0, 14);
           const storagePrefix = 'pulp_skills_data_20250825201950_20250910150825_' + timestamp + '_';
