@@ -1116,6 +1116,40 @@
           // ignore
         }
       }
+      // Clone the current document into a detached DOM, refresh the site-defaults
+      // payload, and return a serialised HTML string. This shared helper prevents
+      // the export routines from performing fragile string replacements on the
+      // live page markup.
+      function buildExportHtmlWithDefaults(allB64) {
+        const exportDoc = document.implementation.createHTMLDocument(document.title);
+        const clonedHtml = document.documentElement.cloneNode(true);
+        exportDoc.replaceChild(clonedHtml, exportDoc.documentElement);
+        const defaultsNodes = exportDoc.querySelectorAll('#site-defaults');
+        let insertParent = exportDoc.body;
+        let insertBefore = null;
+        if (defaultsNodes.length > 0) {
+          const firstNode = defaultsNodes[0];
+          insertParent = firstNode.parentNode || exportDoc.body;
+          insertBefore = firstNode.nextSibling;
+          Array.from(defaultsNodes).forEach(node => {
+            if (node.parentNode) {
+              node.parentNode.removeChild(node);
+            }
+          });
+        } else {
+          insertParent = exportDoc.head || exportDoc.body;
+          insertBefore = insertParent.firstChild;
+        }
+        const defaultsScript = exportDoc.createElement('script');
+        defaultsScript.id = 'site-defaults';
+        defaultsScript.type = 'application/json';
+        defaultsScript.textContent = allB64;
+        insertParent.insertBefore(defaultsScript, insertBefore);
+        const serializer = new XMLSerializer();
+        const docType = document.doctype ? serializer.serializeToString(document.doctype) + '\n' : '<!DOCTYPE html>\n';
+        return docType + serializer.serializeToString(exportDoc);
+      }
+
       function saveStructureVersion() {
         if (!currentSite || !rows || rows.length === 0) {
           alert('Start an assessment and create at least one role before exporting a structure.');
@@ -3050,17 +3084,8 @@
           exportObj.definitions = roleDefinitions;
           const jsonStr = JSON.stringify(exportObj);
           const allB64 = btoa(unescape(encodeURIComponent(jsonStr)));
-          // Capture the current HTML
-          let html = document.documentElement.outerHTML;
-          // Inject or replace a <script id="site-defaults"> block with the base64 payload.
-          if (/<script[^>]+id="site-defaults"[^>]*>/.test(html)) {
-            html = html.replace(/(<script[^>]+id="site-defaults"[^>]*>)([\s\S]*?)(<\/script>)/,
-                                `$1\n  ${allB64}\n$3`);
-          } else {
-            // If no site-defaults script exists, insert one just before </body>
-            html = html.replace(/<\/body>/,
-              `<script id="site-defaults" type="application/json">\n  ${allB64}\n<\/script>\n</body>`);
-          }
+          // Serialise the cloned DOM with the in-memory defaults embedded.
+          let html = buildExportHtmlWithDefaults(allB64);
           // Generate a unique timestamp and update storage key prefixes
           const now = new Date();
           const timestamp = now.toISOString().replace(/[:T.-]/g, '').slice(0, 14);
